@@ -1,68 +1,69 @@
 # Star Wars: Empire at War — Localization Toolset (by EMP_UA)
 
-UA: Комплексний набір інструментів для локалізації ігор на рушії **Alamo** (Star Wars: Empire at War). Дозволяє автоматизувати процес від екстракції бінарних даних до інтелектуального перекладу за допомогою ШІ.
-
-EN: A comprehensive toolkit for localizing games built on the **Alamo** engine (Star Wars: Empire at War). It automates the entire pipeline, from binary data extraction to AI-powered translation.
+**UA:** Комплексний набір інструментів для локалізації ігор на рушії **Alamo** (Star Wars: Empire at War). Дозволяє автоматизувати процес від екстракції бінарних даних до інтелектуального перекладу за допомогою ШІ.  
+**EN:** A comprehensive toolkit for localizing games built on the **Alamo** engine (Star Wars: Empire at War). It automates the entire pipeline, from binary data extraction to AI-powered translation.
 
 ---
 
 ## 🛡️ Technical Transparency / Технічна прозорість
 
-UA: Цей репозиторій містить вихідний код інструментів, що використовуються для створення мовних пакетів. Я публікую цей код для забезпечення прозорості перед спільнотою Nexus Mods та Steam Workshop.
-* **Безпека:** Інструменти працюють виключно у межах робочих папок, не модифікують системні реєстри та не потребують прав адміністратора[cite: 11, 15].
-* **Приватність:** API-ключі Gemini не зберігаються у коді та вводяться користувачем під час сесії або через локальний файл `api_key.txt`[cite: 15].
+**UA:** Для забезпечення безпеки та прозорості я надаю вихідний код усіх інструментів та логіку інсталятора:
+* **Безпека:** Основні інструменти портативні та працюють без спеціальних прав, проте запуск `SetupFonts.bat` для реєстрації шрифтів у Windows може потребувати прав адміністратора.
+* **Реєстр:** 
+    * Інсталятор використовує **HKEY_CURRENT_USER** виключно для роботи деінсталятора та відстеження версії 1.1, щоб запобігти дублюванню файлів.
+    * Скрипт `SetupFonts.bat` вносить зміни до реєстру (гілка Fonts) для офіційної реєстрації модифікованих шрифтів у системі, що необхідно для їх розпізнавання грою.
+* **Приватність:** API-ключі Gemini вводяться користувачем вручну та не зберігаються в репозиторії.
+* **Очищення:** Деінсталятор повністю видаляє всі внесені зміни, файли перекладу та власні записи в реєстрі.
 
-EN: This repository contains the source code for the tools used to create language packs. I am publishing this code to ensure transparency for the Nexus Mods and Steam Workshop communities.
-* **Security:** The tools operate strictly within working directories, do not modify system registries, and do not require administrator privileges[cite: 11, 15].
-* **Privacy:** Gemini API keys are not hardcoded and must be provided by the user during the session or via a local `api_key.txt` file[cite: 15].
+**EN:** To ensure safety and transparency, I am providing the source code for all tools and the installer logic:
+* **Security:** Core tools are portable, though running `SetupFonts.bat` for font registration in Windows may require administrator privileges.
+* **Registry Use:** 
+    * The installer uses **HKEY_CURRENT_USER** solely for uninstaller support and version 1.1 tracking.
+    * The `SetupFonts.bat` script modifies the registry (Fonts branch) to register modified fonts within the system, which is required for the game engine to recognize them.
+* **Privacy:** Gemini API keys are entered manually by the user and are not stored within the repository.
+* **Cleanup:** The uninstaller completely removes all changes, localization files, and its own registry entries.
 
 ---
 
 ## 🧰 Third-party Tools & Credits / Подяки
 
-* **[Gemini API](https://ai.google.dev/):** Використовується як основний лінгвістичний рушій для перекладу[cite: 15, 18].
-* **[CsvHelper](https://joshclose.github.io/CsvHelper/):** Для надійної обробки проміжних TSV-таблиць[cite: 13].
-* **[Inno Setup](https://jrsoftware.org/isinfo.php):** Використовується для створення інсталятора з підтримкою версійності та деінсталяції.
+* **[Gemini API](https://ai.google.dev/):** **UA:** Основний лінгвістичний рушій для перекладу. **EN:** The primary linguistic engine used for translation.
+* **[CsvHelper](https://joshclose.github.io/CsvHelper/):** **UA:** Для надійної обробки проміжних TSV-таблиць. **EN:** For robust processing of intermediate TSV tables.
+* **[Inno Setup](https://jrsoftware.org/isinfo.php):** **UA:** Використовується для створення професійного пакета встановлення з підтримкою версійності. **EN:** Used to create a professional installation package with version detection support.
 
 ---
 
 ## ⚙️ Development Workflow / Робочий процес
 
-UA: Проєкт складається з трьох основних модулів:
+**UA:** Цей проєкт є результатом складного технічного циклу:
+1. **Extraction & Packaging:** Використання `EaWLocalizationTool` для розпакування бінарних `.dat`, обробки `XML` та реконструкції архівів із збереженням CRC32.
+2. **AI-Enhanced Translation:** Використання `StarWarsLocalizer` для автоматизованого перекладу через Gemini API (3.1 Flash Lite / 2.5 Flash) з дворівневою перевіркою галюцинацій.
+3. **Font Engineering:** Модифікація оригінальних шрифтів гри шляхом додавання українських символів та налаштування метрик для коректного відображення в інтерфейсі.
 
-1. **EaWLocalizationTool (Extractor & Repacker):**
-   * Парсинг бінарних файлів `MASTERTEXTFILE_*.DAT`[cite: 9, 13].
-   * Обробка ігрових `XML` та технічних `TXT` файлів[cite: 8, 10].
-   * Реконструкція ігрових архівів із збереженням оригінального кодування та CRC32-хешів[cite: 7, 13].
-
-2. **StarWarsLocalizer (AI Translation Engine):**
-   * **Dual-Tier Logic:** Підтримка Gemini 3.1 Flash Lite (Free) та Gemini 2.5 Flash (Paid)[cite: 15].
-   * **Rate Limiting:** Контроль RPM/RPD для запобігання блокуванням[cite: 14, 16].
-   * **Smart Caching:** Глобальний кеш перекладів для економії запитів до API[cite: 16].
-
-3. **MEGExtractor:**
-   * Спеціалізований інструмент для розпакування та маніпуляції з `.meg` архівами гри.
-
-EN: The project consists of three main modules:
-
-1. **EaWLocalizationTool (Extractor & Repacker):**
-   * Parsing of binary `MASTERTEXTFILE_*.DAT` files[cite: 9, 13].
-   * Processing of game `XML` and technical `TXT` files[cite: 8, 10].
-   * Reconstruction of game archives while preserving original encoding and CRC32 hashes[cite: 7, 13].
-
-2. **StarWarsLocalizer (AI Translation Engine):**
-   * **Dual-Tier Logic:** Support for Gemini 3.1 Flash Lite (Free) and Gemini 2.5 Flash (Paid)[cite: 15].
-   * **Rate Limiting:** Intelligent RPM/RPD control to prevent API bans[cite: 14, 16].
-   * **Smart Caching:** Global translation cache to save API requests[cite: 16].
+**EN:** This project is the result of a complex technical workflow:
+1. **Extraction & Packaging:** Using `EaWLocalizationTool` to unpack binary `.dat` files, process `XML`, and reconstruct archives while preserving CRC32.
+2. **AI-Enhanced Translation:** Using `StarWarsLocalizer` for automated translation via Gemini API (3.1 Flash Lite / 2.5 Flash) with two-tier hallucination validation.
+3. **Font Engineering:** Modifying original game fonts by adding Ukrainian characters and adjusting metrics for correct UI display.
 
 ---
 
 ## 📂 Repository Structure / Структура репозиторію
 
-* **/assets/fonts** — UA: Оригінальні та модифіковані шрифти гри / EN: Original and modified game fonts.
-* **/scr** — UA: Вихідний код інструментів / EN: Tools source code:
-    * `/EaWLocalizationTool` — Extractor & Repacker.
-    * `/MEGExtractor` — MEG archive tool.
-    * `/StarWarsLocalizer` — Gemini AI Translator.
-* **/setup** — UA: Конфігураційні файли для Inno Setup / EN: Inno Setup configuration files.
-* `.gitignore` — UA: Список файлів, що ігноруються Git (включаючи кеш та ключі) / EN: Git ignore list (including cache and keys).
+* **/assets/fonts** 
+  * **UA:** Містить модифіковані шрифти (`.ttf`) та `SetupFonts.bat` для автоматизації їх підготовки та встановлення у систему.
+  * **EN:** Contains modified fonts (`.ttf`) and `SetupFonts.bat` for automated preparation and system installation.
+* **/scr**
+  * `/EaWLocalizationTool` — **UA:** Код для екстракції та пакування архівів. **EN:** Source for archive extraction and repacking.
+  * `/MEGExtractor` — **UA:** Інструмент для роботи з `.meg` архівами гри. **EN:** Tool for handling game `.meg` archives.
+  * `/StarWarsLocalizer` — **UA:** ШІ-перекладач на базі Gemini API. **EN:** AI-translator based on Gemini API.
+* **/setup**
+  * `InnoSetup.txt` — **UA:** Текст скрипта для Inno Setup. Надає повну прозорість того, як файли розгортаються та видаляються з папки гри.
+  * **EN:** Inno Setup script text. Provides full transparency on how localization is deployed and uninstalled from the game directory.
+* `.gitignore` — **UA:** Виключає конфіденційні файли (ключі) та тимчасові дані компіляції. **EN:** Excludes sensitive files (keys) and temporary build data.
+* `LICENSE` — **UA:** Ліцензія проєкту. **EN:** Project license.
+
+---
+
+### ⚖️ Copyright Note / Примітка щодо авторських прав
+**UA:** Усі модифіковані активи у папці `/assets` надаються виключно для некомерційного використання фанатами. Усі права на оригінальні активи належать розробникам гри.  
+**EN:** All modified assets in the `/assets` folder are provided solely for non-commercial fan use. All rights to the original assets belong to the game developers.
