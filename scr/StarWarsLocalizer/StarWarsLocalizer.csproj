@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      UA: Цільова платформа: .NET 10.0.
+          Використовуємо top-level statements у Program.cs.
+      EN: Target platform: .NET 10.0.
+          Using top-level statements in Program.cs.
+    -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+
+    <!-- UA: Назва збірки та простору імен за замовчуванням. EN: Assembly and default namespace name. -->
+    <AssemblyName>EaWLocalizer</AssemblyName>
+    <RootNamespace>EaWLocalizer</RootNamespace>
+
+    <!-- UA: Одиночний виконуваний файл для зручного поширення. EN: Single-file publish for easy distribution. -->
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <AssemblyVersion>1.0.0</AssemblyVersion>
+    <FileVersion>1.0.0</FileVersion>
+    <Description>Star Wars: Empire at War — TSV Localization Engine v1.0</Description>
+  </PropertyGroup>
+
+</Project>
