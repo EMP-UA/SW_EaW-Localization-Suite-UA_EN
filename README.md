@@ -58,7 +58,7 @@
   * `/MEGExtractor` — **UA:** Інструмент для роботи з `.meg` архівами гри. **EN:** Tool for handling game `.meg` archives.
   * `/StarWarsLocalizer` — **UA:** ШІ-перекладач на базі Gemini API. **EN:** AI-translator based on Gemini API.
 * **/setup**
-  * `InnoSetup.txt` — **UA:** Текст скрипта для Inno Setup. Надає повну прозорість того, як файли розгортаються та видаляються з папки гри.
+  * `packexe.iss` — **UA:** Текст скрипта для Inno Setup. Надає повну прозорість того, як файли розгортаються та видаляються з папки гри.
   * **EN:** Inno Setup script text. Provides full transparency on how localization is deployed and uninstalled from the game directory.
 * `.gitignore` — **UA:** Виключає конфіденційні файли (ключі) та тимчасові дані компіляції. **EN:** Excludes sensitive files (keys) and temporary build data.
 * `LICENSE` — **UA:** Ліцензія проєкту. **EN:** Project license.
