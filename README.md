@@ -8,21 +8,21 @@
 ## 🛡️ Technical Transparency / Технічна прозорість
 
 **UA:** Для забезпечення безпеки та прозорості я надаю вихідний код усіх інструментів та логіку інсталятора:
-* **Безпека:** Основні інструменти портативні та працюють без спеціальних прав, проте запуск `SetupFonts.bat` для реєстрації шрифтів у Windows може потребувати прав адміністратора.
+* **Безпека:** Основні інструменти портативні та працюють без спеціальних прав. Скрипт `SetupFonts.bat` автоматично визначає версію ОС: на сучасних Windows (10 версії 1809+ та 11) він дозволяє встановлення шрифтів локально **без прав адміністратора**, а для старіших систем або глобального встановлення безпечно запитує підвищення прав через UAC.
 * **Реєстр:** 
-    * Інсталятор використовує **HKEY_CURRENT_USER** виключно для роботи деінсталятора та відстеження версії 1.1, щоб запобігти дублюванню файлів.
-    * Скрипт `SetupFonts.bat` вносить зміни до реєстру (гілка Fonts) для офіційної реєстрації модифікованих шрифтів у системі, що необхідно для їх розпізнавання грою.
+    * Інсталятор використовує **HKEY_CURRENT_USER** виключно для роботи деінсталятора та відстеження версії 0.10 (запобігання дублюванню).
+    * Скрипт `SetupFonts.bat` вносить зміни до гілки Fonts (у **HKEY_CURRENT_USER** або **HKEY_LOCAL_MACHINE** залежно від вибору) для офіційної реєстрації шрифтів у системі, що необхідно для рушія гри.
 * **Приватність:** API-ключі Gemini вводяться користувачем вручну та не зберігаються в репозиторії.
-* **Очищення:** Деінсталятор повністю видаляє всі внесені зміни, файли перекладу та власні записи в реєстрі.
+* **Очищення:** Деінсталятор повністю видаляє всі файли локалізації, власні записи в реєстрі, а також **інтерактивно запитує** користувача перед автоматичним видаленням встановлених шрифтів із системи.
 
 **EN:** To ensure safety and transparency, I am providing the source code for all tools and the installer logic:
-* **Security:** Core tools are portable, though running `SetupFonts.bat` for font registration in Windows may require administrator privileges.
+* **Security:** Core tools are portable and run without special privileges. The `SetupFonts.bat` script automatically detects the OS version: on modern Windows (10 build 1809+ and 11), it allows local font installation **without administrator rights**. For older systems or global installation, it safely requests elevation via UAC.
 * **Registry Use:** 
-    * The installer uses **HKEY_CURRENT_USER** solely for uninstaller support and version 1.1 tracking.
-    * The `SetupFonts.bat` script modifies the registry (Fonts branch) to register modified fonts within the system, which is required for the game engine to recognize them.
+    * The installer uses **HKEY_CURRENT_USER** solely for uninstaller support and version 0.10 tracking (to prevent duplication).
+    * The `SetupFonts.bat` script modifies the Fonts branch (in **HKEY_CURRENT_USER** or **HKEY_LOCAL_MACHINE** depending on the user's choice) to officially register fonts, which is required by the game engine.
 * **Privacy:** Gemini API keys are entered manually by the user and are not stored within the repository.
-* **Cleanup:** The uninstaller completely removes all changes, localization files, and its own registry entries.
-
+* **Cleanup:** The uninstaller completely removes all localization files, its own registry entries, and **interactively prompts** the user before automatically removing the installed fonts from the system.
+  
 ---
 
 ## 🧰 Third-party Tools & Credits / Подяки
