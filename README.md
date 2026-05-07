@@ -30,6 +30,7 @@
 * **[Gemini API](https://ai.google.dev/):** **UA:** Основний лінгвістичний рушій для перекладу. **EN:** The primary linguistic engine used for translation.
 * **[CsvHelper](https://joshclose.github.io/CsvHelper/):** **UA:** Для надійної обробки проміжних TSV-таблиць. **EN:** For robust processing of intermediate TSV tables.
 * **[Inno Setup](https://jrsoftware.org/isinfo.php):** **UA:** Використовується для створення професійного пакета встановлення з підтримкою версійності. **EN:** Used to create a professional installation package with version detection support.
+* **[Exo 2 Font](https://fonts.google.com/specimen/Exo+2):** **UA:** Використано як гармонійну базу для інтеграції українських символів в оригінальні шрифти гри. **EN:** Used as a matching base for integrating Ukrainian characters into the original game fonts.
 
 ---
 
@@ -38,12 +39,12 @@
 **UA:** Цей проєкт є результатом складного технічного циклу:
 1. **Extraction & Packaging:** Використання `EaWLocalizationTool` для розпакування бінарних `.dat`, обробки `XML` та реконструкції архівів із збереженням CRC32.
 2. **AI-Enhanced Translation:** Використання `StarWarsLocalizer` для автоматизованого перекладу через Gemini API (3.1 Flash Lite / 2.5 Flash) з дворівневою перевіркою галюцинацій.
-3. **Font Engineering:** Модифікація оригінальних шрифтів гри шляхом додавання українських символів та налаштування метрик для коректного відображення в інтерфейсі.
+3. **Font Engineering:**: Модифікація оригінальних шрифтів гри шляхом "підсадки" українських символів (на базі відкритого шрифту **Exo 2**) та налаштування метрик для коректного відображення в інтерфейсі.
 
 **EN:** This project is the result of a complex technical workflow:
 1. **Extraction & Packaging:** Using `EaWLocalizationTool` to unpack binary `.dat` files, process `XML`, and reconstruct archives while preserving CRC32.
 2. **AI-Enhanced Translation:** Using `StarWarsLocalizer` for automated translation via Gemini API (3.1 Flash Lite / 2.5 Flash) with two-tier hallucination validation.
-3. **Font Engineering:** Modifying original game fonts by adding Ukrainian characters and adjusting metrics for correct UI display.
+3. **Font Engineering:**: Modifying original game fonts by blending in Ukrainian characters (based on the open-source **Exo 2** font) and adjusting metrics for correct UI display.
 
 ---
 
