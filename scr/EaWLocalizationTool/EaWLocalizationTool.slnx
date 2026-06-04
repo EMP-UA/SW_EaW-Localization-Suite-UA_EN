@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="EaWLocalizationTool.GUI/AppIcon.ico" />
+  </Folder>
+  <Project Path="EaWLocalizationTool.Core/EaWLocalizationTool.Core.csproj" />
+  <Project Path="EaWLocalizationTool.GUI/EaWLocalizationTool.GUI.csproj" Id="0ca25363-19e8-47dd-bd46-f34a27fc59b0" />
+  <Project Path="EaWLocalizationTool/EaWLocalizationTool.csproj" />
+</Solution>

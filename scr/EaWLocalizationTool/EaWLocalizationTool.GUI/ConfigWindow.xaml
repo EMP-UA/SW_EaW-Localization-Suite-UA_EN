@@ -1,0 +1,85 @@
+<Window x:Class="EaWLocalizationTool.GUI.ConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="⚙ Конфіг / Config"
+        Height="440" Width="580"
+        MinHeight="380" MinWidth="460"
+        ResizeMode="CanResize"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource BgSurface}"
+        Foreground="{DynamicResource TextPrim}"
+        FontFamily="Segoe UI">
+
+    <!--
+        UA: ScrollViewer гарантує видимість кнопок при будь-якому розмірі вікна.
+            ResizeMode="CanResize" дозволяє розтягувати вікно.
+        EN: ScrollViewer guarantees button visibility at any window size.
+            ResizeMode="CanResize" allows window resizing.
+    -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled"
+                  Padding="20">
+        <StackPanel>
+
+            <!-- Заголовок / Title -->
+            <TextBlock Text="⚙ Конфіг / Нотатки шляхів"
+                       FontSize="14" FontWeight="SemiBold" FontFamily="Consolas"
+                       Foreground="{DynamicResource Accent}"
+                       Margin="0,0,0,4"/>
+            <TextBlock FontSize="{DynamicResource FontTiny}"
+                       Foreground="{DynamicResource TextDim}"
+                       Margin="0,0,0,18"
+                       Text="UA: Шляхи — лише нотатки для зручності. Файли відкриваються кнопками у головному вікні.&#10;EN: Paths are notes only. Files are opened via buttons in the main window."/>
+
+            <!-- ① Оригінальний DAT / Original DAT -->
+            <TextBlock FontSize="{DynamicResource FontTiny}" FontFamily="Consolas"
+                       FontWeight="SemiBold" Foreground="{DynamicResource FlagBlue}"
+                       Margin="0,0,0,4" Text="① ОРИГІНАЛЬНИЙ DAT / ORIGINAL DAT"/>
+            <TextBox x:Name="OrigPathBox" Style="{StaticResource DarkInput}"
+                     Tag="Н/п / e.g.: C:\SteamLibrary\...\Data\Text\MasterTextFile_English.dat"
+                     Margin="0,0,0,12"/>
+
+            <!-- ② Файл перекладу / Translation file -->
+            <TextBlock FontSize="{DynamicResource FontTiny}" FontFamily="Consolas"
+                       FontWeight="SemiBold" Foreground="{DynamicResource FlagYellow}"
+                       Margin="0,0,0,4" Text="② ПЕРЕКЛАД / TRANSLATION (TSV або DAT)"/>
+            <TextBox x:Name="TransPathBox" Style="{StaticResource DarkInput}"
+                     Tag="Н/п / e.g.: C:\Localization\Review\MasterTextFile_English.dat.tsv"
+                     Margin="0,0,0,12"/>
+
+            <!-- ③ Папка виходу / Output folder -->
+            <TextBlock FontSize="{DynamicResource FontTiny}" FontFamily="Consolas"
+                       FontWeight="SemiBold" Foreground="{DynamicResource Accent}"
+                       Margin="0,0,0,4" Text="③ ПАПКА ВИХОДУ / OUTPUT FOLDER"/>
+            <TextBox x:Name="OutputPathBox" Style="{StaticResource DarkInput}"
+                     Tag="Н/п / e.g.: C:\SteamLibrary\...\Mods\Ukrainian\Data\Text"
+                     Margin="0,0,0,12"/>
+
+            <!-- Нотатки / Notes -->
+            <TextBlock FontSize="{DynamicResource FontTiny}" FontFamily="Consolas"
+                       FontWeight="SemiBold" Foreground="{DynamicResource TextDim}"
+                       Margin="0,0,0,4" Text="НОТАТКИ / NOTES"/>
+            <TextBox x:Name="NotesBox" Style="{StaticResource DarkInput}"
+                     Tag="Вільний текст / Free text..."
+                     AcceptsReturn="True" Height="64" TextWrapping="Wrap"
+                     Margin="0,0,0,20"/>
+
+            <!-- Роздільник / Separator -->
+            <Border Height="1" Background="{DynamicResource BdNorm}" Margin="0,0,0,16"/>
+
+            <!-- Кнопки / Buttons -->
+            <WrapPanel>
+                <Button Content="💾 Зберегти JSON / Save JSON"
+                        Style="{StaticResource PrimaryBtn}"
+                        Click="SaveConfig_Click" Margin="0,0,8,8"/>
+                <Button Content="📂 Завантажити JSON / Load JSON"
+                        Style="{StaticResource DarkBtn}"
+                        Click="LoadConfig_Click" Margin="0,0,8,8"/>
+                <Button Content="✕ Закрити / Close"
+                        Style="{StaticResource DarkBtn}"
+                        Click="CloseButton_Click" Margin="0,0,0,8"/>
+            </WrapPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Window>

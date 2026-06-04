@@ -1,0 +1,583 @@
+<Window x:Class="EaWLocalizationTool.GUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="⚡ EaW DAT Localizer — EMP_UA"
+        Height="740" Width="1300" MinHeight="540" MinWidth="920"
+        Background="{DynamicResource BgBase}"
+        Foreground="{DynamicResource TextPrim}"
+        FontFamily="Segoe UI"
+        Icon="AppIcon.ico"
+        Closing="Window_Closing">
+
+    <!--
+        UA: ContextMenu у Window.Resources — єдиний спосіб мати Click обробники
+            без помилки MC6007 (яка виникає при ContextMenu у Style.Setter).
+        EN: ContextMenu in Window.Resources — only way to have Click handlers
+            without MC6007 error (which occurs with ContextMenu in Style.Setter).
+    -->
+    <Window.Resources>
+        <ContextMenu x:Key="RowCtxMenu">
+            <MenuItem Header="📋 UA: Копіювати оригінал / EN: Copy original"
+                      Click="CtxCopyOriginal_Click"/>
+            <MenuItem Header="📝 UA: Вставити оригінал як переклад / EN: Paste original as translation"
+                      Click="CtxPasteOriginalAsTranslation_Click"/>
+            <Separator/>
+            <MenuItem Header="🗑 UA: Очистити переклад / EN: Clear translation"
+                      Click="CtxClearTranslation_Click"/>
+            <Separator/>
+            <MenuItem Header="🔑 UA: Копіювати ключ / EN: Copy key"
+                      Click="CtxCopyKey_Click"/>
+        </ContextMenu>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" MinHeight="46"/>  <!-- 0 Header       -->
+            <RowDefinition Height="Auto"/>                  <!-- 1 File loaders -->
+            <RowDefinition Height="Auto"/>                  <!-- 2 Safety strip -->
+            <RowDefinition Height="Auto"/>                  <!-- 3 Progress     -->
+            <RowDefinition Height="Auto"/>                  <!-- 4 Toolbar      -->
+            <RowDefinition Height="Auto"/>                  <!-- 5 Legend       -->
+            <RowDefinition Height="*"/>                     <!-- 6 DataGrid     -->
+        </Grid.RowDefinitions>
+
+        <!-- ═══ ROW 0 — HEADER ══════════════════════════════════════════════
+             UA: Шрифт FontUI (фіксований 11pt) — не масштабується разом з таблицею.
+                 ScrollViewer горизонтальний — запобігає виходу кнопок за межі.
+             EN: FontUI (fixed 11pt) — doesn't scale with table font.
+                 Horizontal ScrollViewer — prevents buttons from overflowing.
+        -->
+        <Border Grid.Row="0"
+                Background="{DynamicResource BgSurface}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,0,0,2"
+                Padding="14,0">
+            <DockPanel LastChildFill="False" MinHeight="46">
+
+                <!-- Логотип / Logo -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center"
+                            DockPanel.Dock="Left" Margin="0,0,12,0">
+                    <TextBlock Text="⚡" FontSize="15"
+                               Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
+                    <TextBlock Text=" EaW DAT Localizer"
+                               FontSize="13" FontWeight="SemiBold" FontFamily="Consolas"
+                               Foreground="{DynamicResource Accent}" VerticalAlignment="Center"/>
+                    <TextBlock Text=" EMP_UA" FontSize="9" FontFamily="Consolas"
+                               Foreground="{DynamicResource FlagYellow}"
+                               VerticalAlignment="Bottom" Margin="2,0,0,3"/>
+                    <Border x:Name="SafeBadge" Visibility="Collapsed"
+                            Background="{DynamicResource BgCard}"
+                            BorderBrush="{DynamicResource SafeColor}" BorderThickness="1"
+                            CornerRadius="4" Margin="10,0,0,0" Padding="7,2"
+                            VerticalAlignment="Center">
+                        <TextBlock FontSize="9" FontFamily="Consolas"
+                                   Foreground="{DynamicResource SafeColor}"
+                                   Text="🔒 СТРУКТУРА LOCKED / STRUCTURE LOCKED"/>
+                    </Border>
+                </StackPanel>
+
+                <!--
+                    UA: ScrollViewer дозволяє прокрутити шапку горизонтально
+                        якщо вікно занадто вузьке або шрифт даних дуже великий.
+                    EN: ScrollViewer allows horizontal scroll of header
+                        if window is too narrow or data font is very large.
+                -->
+                <ScrollViewer DockPanel.Dock="Right"
+                              HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled"
+                              VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                        <TextBlock x:Name="StatusText"
+                                   FontSize="{DynamicResource FontUI}"
+                                   Foreground="{DynamicResource StatusGreen}"
+                                   VerticalAlignment="Center" Margin="0,0,12,0"
+                                   MaxWidth="360" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="HeaderStatText"
+                                   FontSize="{DynamicResource FontUI}"
+                                   Foreground="{DynamicResource TextSec}"
+                                   VerticalAlignment="Center" Margin="0,0,14,0"/>
+
+                        <!-- Контроль шрифту / Font size control -->
+                        <Border Background="{DynamicResource BgCard}"
+                                BorderBrush="{DynamicResource BdNorm}" BorderThickness="1"
+                                CornerRadius="5" Padding="2" Margin="0,0,6,0"
+                                VerticalAlignment="Center"
+                                ToolTip="UA: Розмір тексту таблиці (10–20pt). Шрифт кнопок не змінюється.&#10;EN: Table text size (10–20pt). Button font stays fixed.">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="A−" Style="{StaticResource SmallBtn}"
+                                        Click="FontDecrease_Click" BorderThickness="0" Padding="7,3"/>
+                                <TextBlock x:Name="FontSizeLabel" Text="12"
+                                           FontSize="{DynamicResource FontUI}"
+                                           Foreground="{DynamicResource TextSec}"
+                                           VerticalAlignment="Center" MinWidth="20"
+                                           TextAlignment="Center" Margin="3,0"/>
+                                <Button Content="A+" Style="{StaticResource SmallBtn}"
+                                        Click="FontIncrease_Click" BorderThickness="0" Padding="7,3"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Button x:Name="ThemeToggleBtn" Content="☀ Світла / Light"
+                                Style="{StaticResource SmallBtn}"
+                                ToolTip="UA: Перемкнути темну/світлу тему&#10;EN: Toggle dark/light theme"
+                                Click="ThemeToggle_Click" Margin="0,0,6,0"/>
+                        <Button Content="⚙" Style="{StaticResource DarkBtn}"
+                                ToolTip="UA: Конфіг та нотатки шляхів&#10;EN: Config and path notes"
+                                Click="ConfigButton_Click" Padding="9,5" Margin="0,0,6,0"/>
+                        <Button x:Name="ExportButton" Content="⬇ TSV"
+                                Style="{StaticResource DarkBtn}" IsEnabled="False"
+                                ToolTip="UA: Експортувати всі записи у TSV&#10;EN: Export all entries to TSV"
+                                Click="ExportButton_Click" Margin="0,0,6,0"/>
+                        <Button x:Name="SaveButton" Content="💾 Зберегти DAT / Save DAT"
+                                Style="{StaticResource SafeBtn}" IsEnabled="False"
+                                ToolTip="UA: Зберегти новий DAT (структура з ①, текст з ②)&#10;EN: Save new DAT (structure from ①, text from ②)"
+                                Click="SaveButton_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ ROW 1 — FILE LOADERS ════════════════════════════════════════
+             UA: Всі три колонки рівноширокі (1*) для пропорційного масштабування.
+             EN: All three columns equal width (1*) for proportional scaling.
+        -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource BgSurface}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,0,0,2"
+                Padding="14,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" x:Name="OrigCard"
+                        Background="{DynamicResource BgCard}"
+                        BorderBrush="{DynamicResource BdNorm}" BorderThickness="1"
+                        CornerRadius="6" Padding="12,8" Cursor="Hand"
+                        ToolTip="UA: Клацніть для вибору оригінального DAT гри&#10;EN: Click to select the original game DAT file"
+                        MouseLeftButtonUp="OrigCard_Click">
+                    <StackPanel>
+                        <TextBlock FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource FlagBlue}"
+                                   Text="① ОРИГІНАЛЬНИЙ DAT / ORIGINAL DAT (EN)" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="OrigFileText"
+                                   FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextDim}" FontStyle="Italic"
+                                   TextTrimming="CharacterEllipsis" Margin="0,3,0,0"
+                                   Text="Клацніть / Click to select..."/>
+                        <TextBlock x:Name="OrigMetaText"
+                                   FontSize="{DynamicResource FontUI}" Foreground="{DynamicResource TextDim}"
+                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                   Text="UA: Джерело CRC32 · ключів · структури&#10;EN: Source of CRC32 · keys · structure"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="2" x:Name="TransCard"
+                        Background="{DynamicResource BgCard}"
+                        BorderBrush="{DynamicResource BdNorm}" BorderThickness="1"
+                        CornerRadius="6" Padding="12,8" Cursor="Hand"
+                        ToolTip="UA: TSV з вашого інструменту або перекладений DAT&#10;EN: TSV from your tool or a translated DAT"
+                        MouseLeftButtonUp="TransCard_Click">
+                    <StackPanel>
+                        <TextBlock FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource FlagYellow}"
+                                   Text="② ПЕРЕКЛАД / TRANSLATION (TSV або DAT)" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="TransFileText"
+                                   FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextDim}" FontStyle="Italic"
+                                   TextTrimming="CharacterEllipsis" Margin="0,3,0,0"
+                                   Text="Клацніть / Click to select..."/>
+                        <TextBlock x:Name="TransMetaText"
+                                   FontSize="{DynamicResource FontUI}" Foreground="{DynamicResource TextDim}"
+                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                   Text="UA: Зіставляється з ① по ключу / EN: Matched by key"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Grid.Column="4"
+                        Background="{DynamicResource BgCard}"
+                        BorderBrush="{DynamicResource BdNorm}" BorderThickness="1"
+                        CornerRadius="6" Padding="12,8" Opacity="0.65">
+                    <StackPanel>
+                        <TextBlock FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
+                                   FontWeight="SemiBold" Foreground="{DynamicResource Accent}"
+                                   Text="③ ВИХІД / OUTPUT (новий файл)" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock x:Name="OutputFileText"
+                                   FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
+                                   Foreground="{DynamicResource TextDim}" FontStyle="Italic"
+                                   TextTrimming="CharacterEllipsis" Margin="0,3,0,0"
+                                   Text="Після «Зберегти» / After save"/>
+                        <TextBlock FontSize="{DynamicResource FontUI}" Foreground="{DynamicResource TextDim}"
+                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis"
+                                   Text="UA: Структура з ①, текст з ② / EN: Structure from ①, text from ②"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- ═══ ROW 2 — SAFETY STRIP ════════════════════════════════════════ -->
+        <Border Grid.Row="2" x:Name="SafetyStrip" Visibility="Collapsed"
+                Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource SafeColor}" BorderThickness="0,0,0,1"
+                Padding="14,4">
+            <WrapPanel>
+                <TextBlock FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource SafeColor}"
+                           FontWeight="SemiBold" Margin="0,0,10,0">🔒 UA: Незмінні / EN: Locked:</TextBlock>
+                <TextBlock FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource SafeColor}" Margin="0,0,14,0">✔ CRC32</TextBlock>
+                <TextBlock FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource SafeColor}" Margin="0,0,14,0">✔ Ключі / Keys (byte-perfect)</TextBlock>
+                <TextBlock FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource SafeColor}" Margin="0,0,14,0">✔ Порядок / Order</TextBlock>
+                <TextBlock FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource SafeColor}" Margin="0,0,20,0">✔ Кількість / Count</TextBlock>
+                <TextBlock FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource StatusAmber}" FontWeight="SemiBold">
+                    ✎ UA: Змінюється лише текст / EN: Only text values change
+                </TextBlock>
+            </WrapPanel>
+        </Border>
+
+        <!-- ═══ ROW 3 — PROGRESS ════════════════════════════════════════════ -->
+        <Border Grid.Row="3" x:Name="MergeBar" Visibility="Collapsed"
+                Background="{DynamicResource BgSurface}"
+                BorderBrush="{DynamicResource BdNorm}" BorderThickness="0,0,0,1"
+                Padding="14,5">
+            <DockPanel LastChildFill="False">
+                <ProgressBar x:Name="ProgressBar" DockPanel.Dock="Left"
+                             Width="200" Height="5"
+                             Background="{DynamicResource BgCard}"
+                             Foreground="{DynamicResource Accent}"
+                             BorderThickness="0" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                <TextBlock x:Name="MergeStatText" DockPanel.Dock="Left"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource TextSec}"
+                           VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <TextBlock x:Name="MergeWarnText" DockPanel.Dock="Left"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource StatusAmber}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ ROW 4 — TOOLBAR ═════════════════════════════════════════════ -->
+        <Border Grid.Row="4" x:Name="ToolbarPanel" Visibility="Collapsed"
+                Background="{DynamicResource BgSurface}"
+                BorderBrush="{DynamicResource BdNorm}" BorderThickness="0,0,0,1"
+                Padding="14,7">
+            <DockPanel LastChildFill="False">
+                <TextBox x:Name="SearchBox" DockPanel.Dock="Left"
+                         Style="{StaticResource DarkInput}"
+                         Tag="🔍 Пошук / Search (ключ · оригінал · переклад)..."
+                         Width="280" VerticalAlignment="Center"
+                         TextChanged="SearchBox_TextChanged"/>
+                <WrapPanel DockPanel.Dock="Left" Margin="8,0,0,0" VerticalAlignment="Center">
+                    <Button x:Name="FilterAll"    Tag="all"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"/>
+                    <Button x:Name="FilterUn"     Tag="un"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"/>
+                    <Button x:Name="FilterTr"     Tag="tr"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"/>
+                    <Button x:Name="FilterMod"    Tag="mod"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"/>
+                    <Button x:Name="FilterIssues" Tag="issues"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"
+                            ToolTip="UA: Рядки де переклад втратив \n %s або теги&#10;EN: Rows where translation lost \n %s or tags"/>
+                    <Button x:Name="FilterTech"   Tag="tech"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,6,0"
+                            ToolTip="UA: Порожні/пробільні рядки — форматувальні роздільники&#10;⚠ Їх переклад ЛАМАЄ відображення у грі!&#10;EN: Empty/whitespace — formatting separators&#10;⚠ Translating BREAKS in-game display!"/>
+                    <!--
+                        UA: OrangeBtn — чітко видима в обох темах (DynamicResource кольори).
+                            Попереджає що ця дія очищує переклади.
+                        EN: OrangeBtn — clearly visible in both themes (DynamicResource colors).
+                            Warns that this action clears translations.
+                    -->
+                    <Button Content="⚙ Очистити технічні / Clear Technical"
+                            Style="{StaticResource OrangeBtn}"
+                            Click="ClearTechnical_Click" Margin="0,0,6,0"
+                            ToolTip="UA: Видаляє переклади з технічних рядків (пробіли/роздільники).&#10;Критично для виправлення crawl-тексту!&#10;EN: Removes translations from technical entries.&#10;Critical for fixing crawl text!"/>
+                    <Button Content="↺" Style="{StaticResource FilterBtn}"
+                            Click="ClearSort_Click" Padding="8,4"
+                            ToolTip="UA: Скинути сортування до порядку оригінального файлу&#10;EN: Reset sorting to original file order"/>
+                </WrapPanel>
+                <TextBlock x:Name="FilterCountText" DockPanel.Dock="Right"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource TextDim}"
+                           VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ ROW 5 — LEGEND ══════════════════════════════════════════════ -->
+        <Border Grid.Row="5" x:Name="LegendBar" Visibility="Collapsed"
+                Background="{DynamicResource BgBase}"
+                BorderBrush="{DynamicResource BdNorm}" BorderThickness="0,0,0,1"
+                Padding="14,3">
+            <DockPanel>
+                <WrapPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Rectangle Width="8" Height="8" Fill="{DynamicResource StatusRed}"
+                               RadiusX="2" RadiusY="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" Без / Untranslated" FontSize="{DynamicResource FontUI}"
+                               Foreground="{DynamicResource TextDim}" Margin="0,0,10,0"/>
+                    <Rectangle Width="8" Height="8" Fill="{DynamicResource StatusGreen}"
+                               RadiusX="2" RadiusY="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" Перекл. / Translated" FontSize="{DynamicResource FontUI}"
+                               Foreground="{DynamicResource TextDim}" Margin="0,0,10,0"/>
+                    <Rectangle Width="8" Height="8" Fill="{DynamicResource FlagYellow}"
+                               RadiusX="2" RadiusY="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" Змінено / Modified" FontSize="{DynamicResource FontUI}"
+                               Foreground="{DynamicResource TextDim}" Margin="0,0,10,0"/>
+                    <Border Width="8" Height="8" Background="#1E0C00"
+                            BorderBrush="#FF6600" BorderThickness="1"
+                            CornerRadius="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" ⚠ Проблема / Issue" FontSize="{DynamicResource FontUI}"
+                               Foreground="{DynamicResource TextDim}" Margin="0,0,10,0"/>
+                    <Border Width="8" Height="8" Background="#001818"
+                            BorderBrush="#00CCCC" BorderThickness="1"
+                            CornerRadius="2" VerticalAlignment="Center"/>
+                    <TextBlock Text=" ⚙ Технічний / Technical" FontSize="{DynamicResource FontUI}"
+                               Foreground="{DynamicResource TextDim}"/>
+                </WrapPanel>
+                <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource TextDim}"
+                           Text="▲▼ Клік заголовку — сортування  ·  ПКМ / RMB — меню  ·  2× клік — редагування / edit"/>
+            </DockPanel>
+        </Border>
+
+        <!-- ═══ ROW 6 — DATAGRID ════════════════════════════════════════════ -->
+        <Grid Grid.Row="6">
+
+            <!-- Порожній стан / Empty state -->
+            <StackPanel x:Name="EmptyState"
+                        HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="⚡" FontSize="38" HorizontalAlignment="Center"
+                           Foreground="{DynamicResource Accent}"/>
+                <TextBlock HorizontalAlignment="Center" Margin="0,12,0,4"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSec}"
+                           Text="UA: Завантажте оригінальний DAT для початку роботи"/>
+                <TextBlock HorizontalAlignment="Center"
+                           FontSize="12" Foreground="{DynamicResource TextDim}" Margin="0,0,0,4"
+                           Text="EN: Load the original DAT to start editing"/>
+                <TextBlock HorizontalAlignment="Center" FontSize="11"
+                           Foreground="{DynamicResource TextDim}" TextAlignment="Center"
+                           Text="UA: Потім (опційно) завантажте TSV або DAT перекладу (②)&#10;EN: Then (optionally) load a translation TSV or DAT (②)"/>
+                <Button Content="📦 Відкрити оригінальний DAT / Open original DAT"
+                        Style="{StaticResource PrimaryBtn}"
+                        Padding="16,8" Margin="0,16,0,0" FontSize="13"
+                        HorizontalAlignment="Center"
+                        Click="EmptyStateOpenBtn_Click"/>
+            </StackPanel>
+
+            <DataGrid x:Name="MainGrid" Visibility="Collapsed"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False" CanUserDeleteRows="False"
+                      CanUserReorderColumns="False" CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      SelectionMode="Single" SelectionUnit="FullRow"
+                      Background="{DynamicResource RowBg}"
+                      RowBackground="{DynamicResource RowBg}"
+                      AlternatingRowBackground="{DynamicResource RowBgAlt}"
+                      Foreground="{DynamicResource TextPrim}"
+                      FontSize="{DynamicResource FontSm}"
+                      GridLinesVisibility="Horizontal"
+                      HorizontalGridLinesBrush="{DynamicResource GridLine}"
+                      BorderThickness="0" HeadersVisibility="Column"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.ScrollUnit="Pixel"
+                      EnableRowVirtualization="True"
+                      ScrollViewer.CanContentScroll="True"
+                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background"      Value="{DynamicResource HdrBg}"/>
+                        <Setter Property="Foreground"      Value="{DynamicResource TextSec}"/>
+                        <Setter Property="FontSize"        Value="{DynamicResource FontTiny}"/>
+                        <Setter Property="FontWeight"      Value="SemiBold"/>
+                        <Setter Property="Padding"         Value="10,8"/>
+                        <Setter Property="BorderBrush"     Value="{DynamicResource BdAcc}"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                        <Setter Property="SeparatorBrush"  Value="{DynamicResource BdNorm}"/>
+                        <Setter Property="Cursor"          Value="Hand"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background"      Value="{DynamicResource RowBg}"/>
+                        <Setter Property="Foreground"      Value="{DynamicResource TextPrim}"/>
+                        <Setter Property="BorderBrush"     Value="{DynamicResource StatusRed}"/>
+                        <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                        <Setter Property="ContextMenu"     Value="{StaticResource RowCtxMenu}"/>
+                        <EventSetter Event="PreviewMouseRightButtonDown"
+                                     Handler="Row_PreviewMouseRightButtonDown"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsTranslated}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource StatusGreen}"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding HasValidationIssue}" Value="True">
+                                <Setter Property="Background" Value="#1E0C00"/>
+                            </DataTrigger>
+                            <!--
+                                UA: Технічний рядок — темно-бірюзовий фон + бірюзова рамка.
+                                    ⚠ Переклад ЛАМАЄ crawl-текст та інші форматні блоки у грі!
+                                EN: Technical entry — dark teal bg + teal border.
+                                    ⚠ Translation BREAKS crawl text and format blocks in-game!
+                            -->
+                            <DataTrigger Binding="{Binding IsTechnical}" Value="True">
+                                <Setter Property="Background"  Value="#001818"/>
+                                <Setter Property="BorderBrush" Value="#00CCCC"/>
+                                <Setter Property="Opacity"     Value="0.7"/>
+                            </DataTrigger>
+                            <!-- UA: Змінено — жовта рамка (вищий пріоритет, останній тригер)
+                                 EN: Modified — yellow border (highest priority, last trigger) -->
+                            <DataTrigger Binding="{Binding IsModified}" Value="True">
+                                <Setter Property="BorderBrush" Value="{DynamicResource FlagYellow}"/>
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource RowHov}"/>
+                                <Setter Property="Opacity"    Value="1.0"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="BorderThickness"  Value="0"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background"  Value="{DynamicResource RowSel}"/>
+                                <Setter Property="Foreground"  Value="{DynamicResource TextPrim}"/>
+                                <Setter Property="BorderBrush" Value="Transparent"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+
+                <DataGrid.Columns>
+
+                    <DataGridTextColumn Header="Ключ / Key ▲▼"
+                                        Binding="{Binding Key}"
+                                        IsReadOnly="True" SortMemberPath="Key"
+                                        Width="0.22*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontFamily"        Value="Consolas"/>
+                                <Setter Property="FontSize"          Value="{DynamicResource FontTiny}"/>
+                                <Setter Property="Foreground"        Value="{DynamicResource TextDim}"/>
+                                <Setter Property="TextWrapping"      Value="Wrap"/>
+                                <Setter Property="Padding"           Value="8,5"/>
+                                <Setter Property="VerticalAlignment" Value="Top"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Оригінал (EN) ▲▼ / Original — Read only"
+                                        Binding="{Binding Original}"
+                                        IsReadOnly="True" SortMemberPath="Original"
+                                        Width="0.28*">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize"          Value="{DynamicResource FontSm}"/>
+                                <Setter Property="Foreground"        Value="{DynamicResource TextSec}"/>
+                                <Setter Property="TextWrapping"      Value="Wrap"/>
+                                <Setter Property="Padding"           Value="8,5"/>
+                                <Setter Property="VerticalAlignment" Value="Top"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTemplateColumn
+                        Header="Переклад (UA) ▲▼ / Translation — Double-click to edit"
+                        SortMemberPath="Translated" Width="*">
+
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Grid ToolTip="{Binding ValidationWarning}">
+                                    <TextBlock TextWrapping="Wrap" Padding="8,5"
+                                               VerticalAlignment="Top"
+                                               FontSize="{DynamicResource FontSm}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text"
+                                                        Value="{Binding Translated}"/>
+                                                <Setter Property="Foreground"
+                                                        Value="{DynamicResource TextPrim}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsTranslated}"
+                                                                 Value="False">
+                                                        <Setter Property="Text"
+                                                                Value="— 2× клік / double-click —"/>
+                                                        <Setter Property="Foreground"
+                                                                Value="{DynamicResource TextDim}"/>
+                                                        <Setter Property="FontStyle" Value="Italic"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding IsTechnical}"
+                                                                 Value="True">
+                                                        <Setter Property="Text"
+                                                                Value="⚙ UA: Технічний — не перекладати! / EN: Technical — do not translate!"/>
+                                                        <Setter Property="Foreground" Value="#00CCCC"/>
+                                                        <Setter Property="FontStyle" Value="Italic"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <TextBlock Text="⚠" HorizontalAlignment="Right"
+                                               VerticalAlignment="Top" Margin="0,3,6,0"
+                                               FontSize="10" Foreground="#FF6600"
+                                               ToolTip="{Binding ValidationWarning}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasValidationIssue}"
+                                                                 Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <TextBox Text="{Binding Translated, UpdateSourceTrigger=PropertyChanged}"
+                                         AcceptsReturn="True" AcceptsTab="False"
+                                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                         MinHeight="72" FontSize="{DynamicResource FontSm}"
+                                         Background="{DynamicResource InputBg}"
+                                         Foreground="{DynamicResource TextPrim}"
+                                         CaretBrush="{DynamicResource TextPrim}"
+                                         BorderBrush="{DynamicResource Accent}"
+                                         BorderThickness="2" Padding="6"
+                                         SelectionBrush="{DynamicResource Accent}"
+                                         VerticalAlignment="Stretch"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+    </Grid>
+</Window>
