@@ -17,8 +17,11 @@
 - **UA:** Автоматична валідація: `\n`, `%s/%d`, `[теги]`, `<теги>` / **EN:** Auto-validation: `\n`, `%s/%d`, `[tags]`, `<tags>`
 - **UA:** Розумне визначення технічних рядків (роздільники crawl-тексту, заглушки) / **EN:** Smart detection of technical entries (crawl-text separators, placeholders)
 - **UA:** Безпечний запис: CRC32 та ключі — побайтова копія оригіналу / **EN:** Safe write: CRC32 and keys — byte-perfect copy from original
+- **UA:** Автозбереження: фоновий запис резервної копії (інтервал налаштовується) для захисту прогресу / **EN:** Autosave: background backup writing (configurable interval) to protect translation progress
 - **UA:** Темна / світла тема, масштабування шрифту / **EN:** Dark / light theme, font scaling
 - **UA:** Експорт у TSV для роботи в Excel / Google Sheets / **EN:** Export to TSV for use in Excel / Google Sheets
+- **UA:** Логування: автоматичний запис помилок та подій у файл для спрощення діагностики крашів / **EN:** Logging: automatic error and event recording to a file to simplify crash diagnostics
+
 ### Скріншоти / Screenshots
 
 ![Темна тема / Dark theme](assets/screenshots/gui_dark_main.png)
