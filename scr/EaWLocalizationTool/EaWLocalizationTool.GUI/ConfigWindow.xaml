@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="⚙ Конфіг / Config"
-        Height="440" Width="580"
-        MinHeight="380" MinWidth="460"
+        Height="480" Width="580"
+        MinHeight="420" MinWidth="460"
         ResizeMode="CanResize"
         WindowStartupLocation="CenterOwner"
         Background="{DynamicResource BgSurface}"
@@ -54,6 +54,18 @@
             <TextBox x:Name="OutputPathBox" Style="{StaticResource DarkInput}"
                      Tag="Н/п / e.g.: C:\SteamLibrary\...\Mods\Ukrainian\Data\Text"
                      Margin="0,0,0,12"/>
+
+            <!-- Автозбереження / Autosave -->
+            <TextBlock FontSize="{DynamicResource FontTiny}" FontFamily="Consolas"
+                       FontWeight="SemiBold" Foreground="{DynamicResource StatusGreen}"
+                       Margin="0,0,0,4" Text="⏱ АВТОЗБЕРЕЖЕННЯ / AUTOSAVE"/>
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <TextBox x:Name="AutoSaveBox" Style="{StaticResource DarkInput}"
+                         Width="60" Text="5" TextAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock FontSize="{DynamicResource FontTiny}" Foreground="{DynamicResource TextDim}"
+                           VerticalAlignment="Center"
+                           Text="UA: Інтервал у хвилинах (0 = вимкнути) / EN: Interval in minutes (0 = disable)"/>
+            </StackPanel>
 
             <!-- Нотатки / Notes -->
             <TextBlock FontSize="{DynamicResource FontTiny}" FontFamily="Consolas"

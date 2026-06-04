@@ -1,11 +1,15 @@
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
+using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using EaWLocalizationTool.GUI.Models;
 using EaWLocalizationTool.GUI.Services;
@@ -22,6 +26,9 @@ public partial class MainWindow : Window
     private string _filterMode = "all";
     private string _searchText = "";
 
+    // UA: Таймер автозбереження / EN: Autosave timer
+    private readonly DispatcherTimer _autoSaveTimer = new();
+
     // ── Допоміжний метод для кольорів / Resource brush helper ─────────────────
     private static Brush Res(string key) =>
         (Brush)Application.Current.Resources[key];
@@ -36,6 +43,10 @@ public partial class MainWindow : Window
         UpdateThemeButton();
         UpdateFontLabel();
         SetActiveFilter("all");
+
+        // UA: Налаштування таймера автозбереження / EN: Autosave timer setup
+        _autoSaveTimer.Tick += AutoSaveTimer_Tick;
+        ApplyAutoSaveSettings();
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -166,9 +177,14 @@ public partial class MainWindow : Window
 
             RefreshView();
             ShowStatus($"✓ {entries.Count} UA: записів / EN: records · «{_origFileName}»");
+
+            SimpleLogger.Log($"UA: Відкрито оригінальний файл / EN: Opened original file: {_origFileName}");
+            if (_autoSaveTimer.Interval.TotalMinutes > 0)
+                _autoSaveTimer.Start();
         }
         catch (Exception ex)
         {
+            SimpleLogger.LogError(ex, "OpenOriginalDat");
             MessageBox.Show(
                 $"UA: Помилка читання DAT / EN: DAT read error:\n\n{ex.Message}",
                 "Помилка / Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -238,9 +254,12 @@ public partial class MainWindow : Window
             ShowStatus(
                 $"✓ {cnt} UA: перекладів зіставлено / EN: matched " +
                 $"· «{Path.GetFileName(dlg.FileName)}»");
+
+            SimpleLogger.Log($"UA: Завантажено переклад / EN: Loaded translation: {Path.GetFileName(dlg.FileName)}");
         }
         catch (Exception ex)
         {
+            SimpleLogger.LogError(ex, "OpenTranslationFile");
             MessageBox.Show(
                 $"UA: Помилка читання перекладу / EN: Translation read error:\n\n{ex.Message}",
                 "Помилка / Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -291,9 +310,12 @@ public partial class MainWindow : Window
             ShowStatus(
                 $"✓ UA: Збережено / EN: Saved «{Path.GetFileName(dlg.FileName)}» " +
                 "· UA: структура збережена побайтово / EN: byte-perfect");
+
+            SimpleLogger.Log($"UA: Файл збережено / EN: File saved: {dlg.FileName}");
         }
         catch (Exception ex)
         {
+            SimpleLogger.LogError(ex, "SaveButton_Click");
             MessageBox.Show(
                 $"UA: Помилка збереження / EN: Save error:\n\n{ex.Message}",
                 "Помилка / Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -317,12 +339,84 @@ public partial class MainWindow : Window
             ShowStatus(
                 $"✓ UA: Експортовано / EN: Exported {_entries.Count} " +
                 $"UA: рядків / EN: rows · «{Path.GetFileName(dlg.FileName)}»");
+
+            SimpleLogger.Log($"UA: Експортовано TSV / EN: Exported TSV: {dlg.FileName}");
         }
         catch (Exception ex)
         {
+            SimpleLogger.LogError(ex, "ExportButton_Click");
             MessageBox.Show(
                 $"UA: Помилка / EN: Error:\n\n{ex.Message}",
                 "Помилка / Error", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // АВТОЗБЕРЕЖЕННЯ / AUTOSAVE
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// UA: Читає інтервал з конфігу. Якщо 0 — вимикає таймер.
+    /// EN: Reads interval from config. If 0 — disables timer.
+    /// </summary>
+    private void ApplyAutoSaveSettings()
+    {
+        int interval = 5;
+        string configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "eaw_localizer_config.json");
+
+        try
+        {
+            if (File.Exists(configPath))
+            {
+                string json = File.ReadAllText(configPath);
+                var cfg = JsonSerializer.Deserialize<ConfigData>(json);
+                if (cfg != null) interval = cfg.AutoSaveIntervalMinutes;
+            }
+        }
+        catch { }
+
+        if (interval > 0)
+        {
+            _autoSaveTimer.Interval = TimeSpan.FromMinutes(interval);
+            if (_origRaw.Length > 0 && !_autoSaveTimer.IsEnabled)
+                _autoSaveTimer.Start();
+        }
+        else
+        {
+            _autoSaveTimer.Stop();
+        }
+    }
+
+    private void AutoSaveTimer_Tick(object? sender, EventArgs e)
+    {
+        PerformAutoSave();
+    }
+
+    /// <summary>
+    /// UA: Виконує тихе збереження у файл _AUTOSAVE.dat поруч із програмою.
+    /// EN: Performs silent save to _AUTOSAVE.dat file next to the executable.
+    /// </summary>
+    private void PerformAutoSave()
+    {
+        if (_origRaw.Length == 0 || _entries.Count == 0) return;
+        if (!_entries.Any(x => x.IsModified)) return;
+
+        try
+        {
+            MainGrid.CommitEdit(DataGridEditingUnit.Row, exitEditingMode: true);
+
+            string autoSaveName = Path.GetFileNameWithoutExtension(_origFileName) + "_AUTOSAVE.dat";
+            string autoSavePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, autoSaveName);
+
+            DatService.WriteSafe(autoSavePath, _origRaw, _entries.ToList());
+
+            SimpleLogger.Log($"UA: Автозбереження успішне / EN: Autosave successful: {autoSaveName}");
+            ShowStatus($"💾 UA: Автозбереження виконано / EN: Autosaved о {DateTime.Now:HH:mm}");
+        }
+        catch (Exception ex)
+        {
+            SimpleLogger.LogError(ex, "PerformAutoSave");
+            ShowStatus("⚠ UA: Помилка автозбереження / EN: Autosave failed", isError: true);
         }
     }
 
@@ -606,8 +700,13 @@ public partial class MainWindow : Window
     // КОНФІГ / CONFIG
     // ══════════════════════════════════════════════════════════════════════════
 
-    private void ConfigButton_Click(object sender, RoutedEventArgs e) =>
+    private void ConfigButton_Click(object sender, RoutedEventArgs e)
+    {
         new ConfigWindow { Owner = this }.ShowDialog();
+        // UA: Оновлюємо налаштування таймера після закриття вікна
+        // EN: Update timer settings after closing the window
+        ApplyAutoSaveSettings();
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // СТАТУС / STATUS
