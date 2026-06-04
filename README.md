@@ -79,11 +79,12 @@
   * **UA:** Містить модифіковані шрифти (`.ttf`) та `SetupFonts.bat` для автоматизації їх підготовки та встановлення у систему.
   * **EN:** Contains modified fonts (`.ttf`) and `SetupFonts.bat` for automated preparation and system installation.
 * **/scr**
-  * `/EaWLocalizationTool` — **UA:** Консольний інструмент: екстракція XML/DAT/TXT → TSV таблиці, зіставлення з перекладом, пакування назад у ігрові формати. **EN:** Console tool: extract XML/DAT/TXT → TSV tables, merge with translation, repack into game formats.
-  * `/EaWLocalizationTool.Core` — **UA:** Спільна бібліотека: парсинг/запис DAT, валідація, моделі. Використовується консоллю та GUI. **EN:** Shared library: DAT parse/write, validation, models. Used by both console and GUI.
-  * `/EaWLocalizationTool.GUI` — **UA:** WPF редактор DAT файлів для ручного перекладу та перевірки. **EN:** WPF DAT file editor for manual translation and review.
+  * `/EaWLocalizationTool` — **UA:** Solution-папка, що містить три проєкти: / **EN:** Solution folder containing three projects:
+    * `/EaWLocalizationTool` — **UA:** Консольний інструмент: екстракція XML/DAT/TXT у TSV-таблиці, зіставлення з перекладом, пакування назад в ігрові формати. **EN:** Console tool: extracts XML/DAT/TXT into TSV tables, merges with translation, and repacks into game formats.
+    * `/EaWLocalizationTool.Core` — **UA:** Спільна бібліотека: парсинг/запис DAT, валідація, моделі. Використовується консоллю та GUI. **EN:** Shared library: DAT parsing/writing, validation, and models. Used by both the console and GUI.
+    * `/EaWLocalizationTool.GUI` — **UA:** WPF-редактор DAT-файлів для ручного перекладу та перевірки. **EN:** WPF DAT file editor for manual translation and review.
   * `/MEGExtractor` — **UA:** Інструмент для роботи з `.meg` архівами гри. **EN:** Tool for handling game `.meg` archives.
-  * `/StarWarsLocalizer` — **UA:** ШІ-перекладач на базі Gemini API. **EN:** AI-translator based on Gemini API.
+  * `/StarWarsLocalizer` — **UA:** ШІ-перекладач на базі Gemini API. **EN:** AI translator based on the Gemini API.
 * **/setup**
   * `packexe.iss` — **UA:** Текст скрипта для Inno Setup. Надає повну прозорість того, як файли розгортаються та видаляються з папки гри. **EN:** Inno Setup script text. Provides full transparency on how localization is deployed and uninstalled from the game directory.
 * `.gitignore` — **UA:** Виключає конфіденційні файли (ключі) та тимчасові дані компіляції. **EN:** Excludes sensitive files (keys) and temporary build data.
