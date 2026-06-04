@@ -25,6 +25,17 @@
 ![Темна тема — Технічні / Dark theme — Technical](assets/screenshots/gui_dark_technical.png)
 ![Світла тема — Проблемні / Light theme — Issues](assets/screenshots/gui_light_issues.png)
 
+### UA: Результат у грі / EN: In-game Result
+
+![Українська локалізація в грі / Ukrainian localization in-game](assets/screenshots/ingame_ua_planet_korriban.jpg)
+
+## 🎬 Медіа / Media
+
+- 📺 [Повна трансляція / Full stream](https://www.youtube.com/watch?v=YrQOiAzkuC4)
+- 🎬 [Інтро українською / Intro in Ukrainian](https://www.youtube.com/shorts/NPhI2JCJ_Zo)
+- 🎮 [Nexus Mods](https://www.nexusmods.com/starwarsempireatwar/mods/1876)
+- 🎮 [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3721022831)
+
 ### Завантаження / Download
 Дивіться розділ [Releases](../../releases) → `EaWLocalizationTool.GUI_vX.X.zip`
 
