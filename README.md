@@ -19,6 +19,11 @@
 - **UA:** Безпечний запис: CRC32 та ключі — побайтова копія оригіналу / **EN:** Safe write: CRC32 and keys — byte-perfect copy from original
 - **UA:** Темна / світла тема, масштабування шрифту / **EN:** Dark / light theme, font scaling
 - **UA:** Експорт у TSV для роботи в Excel / Google Sheets / **EN:** Export to TSV for use in Excel / Google Sheets
+### Скріншоти / Screenshots
+
+![Темна тема / Dark theme](assets/screenshots/gui_dark_main.png)
+![Темна тема — Технічні / Dark theme — Technical](assets/screenshots/gui_dark_technical.png)
+![Світла тема — Проблемні / Light theme — Issues](assets/screenshots/gui_light_issues.png)
 
 ### Завантаження / Download
 Дивіться розділ [Releases](../../releases) → `EaWLocalizationTool.GUI_vX.X.zip`
