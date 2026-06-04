@@ -94,6 +94,9 @@
 * **/assets/fonts** 
   * **UA:** Містить модифіковані шрифти (`.ttf`) та `SetupFonts.bat` для автоматизації їх підготовки та встановлення у систему.
   * **EN:** Contains modified fonts (`.ttf`) and `SetupFonts.bat` for automated preparation and system installation.
+* **/assets/screenshots**
+  * **UA:** Скріншоти GUI редактора та результату локалізації в грі.
+  * **EN:** Screenshots of the GUI editor and in-game localization result.
 * **/scr**
   * `/EaWLocalizationTool` — **UA:** Solution-папка, що містить три проєкти: / **EN:** Solution folder containing three projects:
     * `/EaWLocalizationTool` — **UA:** Консольний інструмент: екстракція XML/DAT/TXT у TSV-таблиці, зіставлення з перекладом, пакування назад в ігрові формати. **EN:** Console tool: extracts XML/DAT/TXT into TSV tables, merges with translation, and repacks into game formats.
