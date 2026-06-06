@@ -40,7 +40,7 @@ public class TranslationEntry : INotifyPropertyChanged
     private static readonly string[] _techPrefixes =
     [
         "[TBL]",            // масова заглушка порожніх ключів / mass placeholder
-    "[["                // заглушки UI Alamo ("[[ CAPTION ]]", "[[ BUTTON ]]")
+        "[["                // заглушки UI Alamo ("[[ CAPTION ]]", "[[ BUTTON ]]")
     ];
 
     // UA: Технічні фрази — можуть бути В БУДЬ-ЯКОМУ місці рядка 
@@ -50,11 +50,9 @@ public class TranslationEntry : INotifyPropertyChanged
     private static readonly string[] _techContains =
     [
         "UNUSED",           // "UNUSED PROLOG LINE", "Boba Fett: UNUSED" тощо / etc.
-    "PLACEHOLDER",      // загальна заглушка / generic placeholder
-    "NOT USED",         // альтернативний маркер / alternative marker
-    "DO NOT TRANSLATE", // явна вказівка / explicit instruction
-    "DO NOT USE",       // вирізані репліки / deprecated voice lines
-    "TODO"              // незаповнений рядок / unfilled entry
+        "PLACEHOLDER",      // загальна заглушка / generic placeholder
+        "DO NOT USE",       // вирізані репліки / deprecated voice lines
+        "DO NOT DISPLAY"    // вказівка приховування тексту / text display block instruction
     ];
 
     /// <summary>
@@ -84,6 +82,9 @@ public class TranslationEntry : INotifyPropertyChanged
     ///     5. ТЕХНІЧНА ФРАЗА / TECHNICAL PHRASE
     ///        Значення містить технічну фразу в будь-якій частині рядка (див. _techContains).
     ///        Приклад: "Boba Fett: DO NOT USE THIS LINE" → технічний.
+    ///
+    ///     6. ТЕХНІЧНИЙ КЛЮЧ / TECHNICAL KEY
+    ///        Жорстко задані ключі, які є маркерами рушія (напр. TEXT_END_OF_DATA).
     ///
     ///     ⚠ УВАГА: переклад технічних рядків може ЗЛАМАТИ гру!
     ///        (crawl-текст, роздільники довідки, форматні блоки)
@@ -116,6 +117,9 @@ public class TranslationEntry : INotifyPropertyChanged
     ///        Value contains a technical phrase anywhere in the string (see _techContains).
     ///        Example: "Boba Fett: DO NOT USE THIS LINE" → technical.
     ///
+    ///     6. TECHNICAL KEY
+    ///        Hardcoded keys that act as engine markers (e.g. TEXT_END_OF_DATA).
+    ///
     ///     ⚠ WARNING: translating technical entries may BREAK the game!
     ///        (crawl text, help separators, format blocks)
     ///        Keep Translated EMPTY — WriteSafe will preserve original bytes.
@@ -138,7 +142,10 @@ public class TranslationEntry : INotifyPropertyChanged
         // UA: Правило 5 — містить технічну фразу в будь-якому місці (напр. після імені "Boba Fett: DO NOT USE")
         // EN: Rule 5 — contains technical phrase anywhere
         || _techContains.Any(p =>
-            Original.Contains(p, StringComparison.OrdinalIgnoreCase));
+            Original.Contains(p, StringComparison.OrdinalIgnoreCase))
+        // UA: Правило 6 — жорстко задані технічні ключі (маркер кінця файлу)
+        // EN: Rule 6 — hardcoded technical keys (end of file marker)
+        || Key.Equals("TEXT_END_OF_DATA", StringComparison.OrdinalIgnoreCase);
 
     // ══════════════════════════════════════════════════════════════════════════
     // ПЕРЕКЛАД / TRANSLATION
