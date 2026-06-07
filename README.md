@@ -15,22 +15,62 @@
 - **UA:** Завантаження оригінального DAT + джерела перекладу (TSV або інший DAT) / **EN:** Load original DAT + translation source (TSV or another DAT)
 - **UA:** Фільтрація: Всі / Без перекладу / Перекладено / Змінено / Проблемні / Технічні / **EN:** Filters: All / Untranslated / Translated / Modified / Issues / Technical
 - **UA:** Автоматична валідація: `\n`, `%s/%d`, `[теги]`, `<теги>` / **EN:** Auto-validation: `\n`, `%s/%d`, `[tags]`, `<tags>`
-- **UA:** Розумне визначення технічних рядків (роздільники crawl-тексту, заглушки) / **EN:** Smart detection of technical entries (crawl-text separators, placeholders)
+- **UA:** Розумне визначення технічних рядків: заглушки, роздільники crawl-тексту, фрази `DO NOT DISPLAY`, маркер `TEXT_END_OF_DATA` / **EN:** Smart detection of technical entries: placeholders, crawl-text separators, `DO NOT DISPLAY` phrases, `TEXT_END_OF_DATA` marker
+- **UA:** Контекстне меню (ПКМ): копіювати оригінал, вставити оригінал як переклад, очистити переклад, копіювати ключ / **EN:** Context menu (RMB): copy original, paste original as translation, clear translation, copy key
 - **UA:** Безпечний запис: CRC32 та ключі — побайтова копія оригіналу / **EN:** Safe write: CRC32 and keys — byte-perfect copy from original
-- **UA:** Автозбереження: фоновий запис резервної копії (інтервал налаштовується) для захисту прогресу / **EN:** Autosave: background backup writing (configurable interval) to protect translation progress
+- **UA:** Автозбереження: фоновий запис резервної копії (інтервал налаштовується, `0` = вимкнено) для захисту прогресу / **EN:** Autosave: background backup writing (configurable interval, `0` = disabled) to protect translation progress
+- **UA:** Логування: автоматичний запис помилок та подій у файл для спрощення діагностики крашів / **EN:** Logging: automatic error and event recording to a file to simplify crash diagnostics
 - **UA:** Темна / світла тема, масштабування шрифту / **EN:** Dark / light theme, font scaling
 - **UA:** Експорт у TSV для роботи в Excel / Google Sheets / **EN:** Export to TSV for use in Excel / Google Sheets
-- **UA:** Логування: автоматичний запис помилок та подій у файл для спрощення діагностики крашів / **EN:** Logging: automatic error and event recording to a file to simplify crash diagnostics
 
 ### Скріншоти / Screenshots
 
-![Темна тема / Dark theme](assets/screenshots/gui_dark_main.png)
-![Темна тема — Технічні / Dark theme — Technical](assets/screenshots/gui_dark_technical.png)
-![Світла тема — Проблемні / Light theme — Issues](assets/screenshots/gui_light_issues.png)
+![Стартовий екран / Start screen](assets/screenshots/gui_dark_main.png)
+![Технічні рядки / Technical entries](assets/screenshots/gui_dark_technical.png)
+![Проблемні рядки / Issues](assets/screenshots/gui_light_issues.png)
+![Контекстне меню / Context menu](assets/screenshots/gui_light_context_menu.png)
+![Конфіг та автозбереження / Config and autosave](assets/screenshots/gui_light_config_autosave.png)
 
 ### UA: Результат у грі / EN: In-game Result
 
 ![Українська локалізація в грі / Ukrainian localization in-game](assets/screenshots/ingame_ua_planet_korriban.jpg)
+
+### Завантаження / Download
+Дивіться розділ [Releases](../../releases) → `EaWLocalizationTool.GUI_vX.X.zip`
+
+**UA:** Вимоги: Windows 10/11 x64, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)  
+**EN:** Requirements: Windows 10/11 x64, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
+
+---
+
+## 🖼️ DDS Texture Converter / Конвертер DDS текстур
+
+**UA:** `EaWTextureConverter` — WPF-інструмент для пакетної конвертації DDS-текстур між PNG і DDS без зовнішніх exe. Розроблено в контексті UA-моду, але сумісний з будь-яким модом EaW/FoC.
+
+**EN:** `EaWTextureConverter` — a WPF tool for batch DDS↔PNG conversion without external executables. Built for the UA mod but compatible with any EaW/FoC mod.
+
+### Можливості / Features
+- **UA:** Рекурсивне сканування папки моду або ручне додавання DDS файлів / **EN:** Recursive mod folder scan or manual DDS file selection
+- **UA:** Пакетна конвертація DDS → PNG зі збереженням альфа-каналу (через Magick.NET, підтримка DXT1/DXT3/DXT5) / **EN:** Batch DDS → PNG preserving alpha channel (via Magick.NET, DXT1/DXT3/DXT5 support)
+- **UA:** Пакетна конвертація PNG → DDS — власний бінарний writer, uncompressed BGRA 32bpp / **EN:** Batch PNG → DDS — custom binary writer, uncompressed BGRA 32bpp
+- **UA:** Формат виводу сумісний з DirectX 9 / рушієм Alamo — заголовок і маски ідентичні оригінальним файлам гри / **EN:** Output format compatible with DirectX 9 / Alamo engine — header and masks identical to original game files
+- **UA:** Автоматичне визначення кореня моду по структурі `Data\Art` — без хардкоду назв, працює з будь-яким модом / **EN:** Automatic mod root detection via `Data\Art` structure — no hardcoded names, works with any mod
+- **UA:** Підтримка обох структур EaW: `Data\Art\Textures` і `Data\patch2\DATA\ART\TEXTURES` / **EN:** Supports both EaW structures: `Data\Art\Textures` and `Data\patch2\DATA\ART\TEXTURES`
+- **UA:** Збереження повної відносної структури папок у папці виводу / **EN:** Full relative folder structure preserved in output
+- **UA:** Сортування по колонках, вибір/зняття всіх файлів, двомовний інтерфейс UA/EN / **EN:** Column sorting, select/deselect all, bilingual UA/EN interface
+- **UA:** Темна і світла тема / **EN:** Dark and light theme
+### Скріншоти / Screenshots
+
+![Головне меню / Main menu](assets/screenshots/tc_light_main.png)
+![Доступна конвертація / Available conversion](assets/screenshots/tc_dark_converted.png)
+
+### Завантаження / Download
+Дивіться розділ [Releases](../../releases) → `EaWTextureConverter_v1.0.0.zip`
+
+**UA:** Вимоги: Windows 10/11 x64, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)  
+**EN:** Requirements: Windows 10/11 x64, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
+
+---
 
 ## 🎬 Медіа / Media
 
@@ -38,12 +78,6 @@
 - 🎬 [Інтро українською / Intro in Ukrainian](https://www.youtube.com/shorts/NPhI2JCJ_Zo)
 - 🎮 [Nexus Mods](https://www.nexusmods.com/starwarsempireatwar/mods/1876)
 - 🎮 [Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3721022831)
-
-### Завантаження / Download
-Дивіться розділ [Releases](../../releases) → `EaWLocalizationTool.GUI_vX.X.zip`
-
-**UA:** Вимоги: Windows 10/11 x64, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)  
-**EN:** Requirements: Windows 10/11 x64, [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0)
 
 ---
 
@@ -64,7 +98,7 @@
     * The `SetupFonts.bat` script modifies the Fonts branch (in **HKEY_CURRENT_USER** or **HKEY_LOCAL_MACHINE** depending on the user's choice) to officially register fonts, which is required by the game engine.
 * **Privacy:** Gemini API keys are entered manually by the user and are not stored within the repository.
 * **Cleanup:** The uninstaller completely removes all localization files, its own registry entries, and **interactively prompts** the user before automatically removing the installed fonts from the system.
-  
+
 ---
 
 ## 🧰 Third-party Tools & Credits / Подяки
@@ -73,6 +107,9 @@
 * **[CsvHelper](https://joshclose.github.io/CsvHelper/):** **UA:** Для надійної обробки проміжних TSV-таблиць. **EN:** For robust processing of intermediate TSV tables.
 * **[Inno Setup](https://jrsoftware.org/isinfo.php):** **UA:** Використовується для створення професійного пакета встановлення з підтримкою версійності. **EN:** Used to create a professional installation package with version detection support.
 * **[Exo 2 Font](https://fonts.google.com/specimen/Exo+2):** **UA:** Використано як гармонійну базу для інтеграції українських символів в оригінальні шрифти гри. **EN:** Used as a matching base for integrating Ukrainian characters into the original game fonts.
+* **[Magick.NET](https://github.com/dlemstra/Magick.NET):** **UA:** Декодування DDS (DXT1/DXT3/DXT5) у EaWTextureConverter. **EN:** DDS decoding (DXT1/DXT3/DXT5) in EaWTextureConverter.
+* **[ImageSharp](https://github.com/SixLabors/ImageSharp):** **UA:** Обробка PNG у EaWTextureConverter. **EN:** PNG processing in EaWTextureConverter.
+* **[BCnEncoder.NET](https://github.com/Nominom/BCnEncoder.NET):** **UA:** Бібліотека BCn-кодування у EaWTextureConverter (підключена; DXT не використовується — записуємо uncompressed BGRA). **EN:** BCn encoding library in EaWTextureConverter (included; DXT unused — we write uncompressed BGRA).
 
 ---
 
@@ -94,7 +131,7 @@
 
 ## 📂 Repository Structure / Структура репозиторію
 
-* **/assets/fonts** 
+* **/assets/fonts**
   * **UA:** Містить модифіковані шрифти (`.ttf`) та `SetupFonts.bat` для автоматизації їх підготовки та встановлення у систему.
   * **EN:** Contains modified fonts (`.ttf`) and `SetupFonts.bat` for automated preparation and system installation.
 * **/assets/screenshots**
@@ -105,6 +142,7 @@
     * `/EaWLocalizationTool` — **UA:** Консольний інструмент: екстракція XML/DAT/TXT у TSV-таблиці, зіставлення з перекладом, пакування назад в ігрові формати. **EN:** Console tool: extracts XML/DAT/TXT into TSV tables, merges with translation, and repacks into game formats.
     * `/EaWLocalizationTool.Core` — **UA:** Спільна бібліотека: парсинг/запис DAT, валідація, моделі. Використовується консоллю та GUI. **EN:** Shared library: DAT parsing/writing, validation, and models. Used by both the console and GUI.
     * `/EaWLocalizationTool.GUI` — **UA:** WPF-редактор DAT-файлів для ручного перекладу та перевірки. **EN:** WPF DAT file editor for manual translation and review.
+  * `/EaWTextureConverter` — **UA:** WPF-інструмент для пакетної конвертації DDS-текстур між форматами PNG і DDS. Підтримує DXT1/DXT3/DXT5 декодування та запис uncompressed BGRA 32bpp, сумісний з рушієм Alamo (DirectX 9). **EN:** WPF tool for batch conversion of DDS textures between PNG and DDS formats. Supports DXT1/DXT3/DXT5 decoding and uncompressed BGRA 32bpp writing, compatible with the Alamo engine (DirectX 9).
   * `/MEGExtractor` — **UA:** Інструмент для роботи з `.meg` архівами гри. **EN:** Tool for handling game `.meg` archives.
   * `/StarWarsLocalizer` — **UA:** ШІ-перекладач на базі Gemini API. **EN:** AI translator based on the Gemini API.
 * **/setup**

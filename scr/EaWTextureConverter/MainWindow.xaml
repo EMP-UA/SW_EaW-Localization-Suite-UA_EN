@@ -1,0 +1,363 @@
+﻿<Window x:Class="EaWTextureConverter.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:EaWTextureConverter.ViewModels"
+        xmlns:conv="clr-namespace:EaWTextureConverter.Converters"
+        Title="{Binding WindowTitle}"
+        Height="680" Width="900"
+        Background="{DynamicResource BrushBg0}">
+
+    <Window.DataContext>
+        <vm:MainViewModel />
+    </Window.DataContext>
+
+    <Window.Resources>
+        <conv:InverseBoolConverter x:Key="InverseBool"/>
+
+        <!-- ── Темна тема / Dark theme ── -->
+        <ResourceDictionary x:Key="DarkTheme">
+            <SolidColorBrush x:Key="BrushBg0"      Color="#1a1a2e"/>
+            <SolidColorBrush x:Key="BrushBg1"      Color="#16213e"/>
+            <SolidColorBrush x:Key="BrushBg2"      Color="#2a2a4a"/>
+            <SolidColorBrush x:Key="BrushHeader"   Color="#0f0f2a"/>
+            <SolidColorBrush x:Key="BrushAccent"   Color="#7b2fff"/>
+            <SolidColorBrush x:Key="BrushAccentUa" Color="#FFD700"/>
+            <SolidColorBrush x:Key="BrushText"     Color="#e0e0e0"/>
+            <SolidColorBrush x:Key="BrushTextDim"  Color="#888"/>
+            <SolidColorBrush x:Key="BrushBorder"   Color="#7b2fff"/>
+            <SolidColorBrush x:Key="BrushOk"       Color="#4caf50"/>
+            <SolidColorBrush x:Key="BrushErr"      Color="#f44336"/>
+        </ResourceDictionary>
+
+        <!-- ── Світла тема / Light theme ── -->
+        <ResourceDictionary x:Key="LightTheme">
+            <SolidColorBrush x:Key="BrushBg0"      Color="#f0f0f8"/>
+            <SolidColorBrush x:Key="BrushBg1"      Color="#ffffff"/>
+            <SolidColorBrush x:Key="BrushBg2"      Color="#e0e0f0"/>
+            <SolidColorBrush x:Key="BrushHeader"   Color="#d0d0e8"/>
+            <SolidColorBrush x:Key="BrushAccent"   Color="#7b2fff"/>
+            <SolidColorBrush x:Key="BrushAccentUa" Color="#b8860b"/>
+            <SolidColorBrush x:Key="BrushText"     Color="#1a1a2e"/>
+            <SolidColorBrush x:Key="BrushTextDim"  Color="#555"/>
+            <SolidColorBrush x:Key="BrushBorder"   Color="#7b2fff"/>
+            <SolidColorBrush x:Key="BrushOk"       Color="#2e7d32"/>
+            <SolidColorBrush x:Key="BrushErr"      Color="#c62828"/>
+        </ResourceDictionary>
+
+        <!-- ── Стилі кнопок ── -->
+        <Style TargetType="Button" x:Key="PrimaryBtn">
+            <Setter Property="Background"      Value="{DynamicResource BrushAccent}"/>
+            <Setter Property="Foreground"      Value="White"/>
+            <Setter Property="Padding"         Value="14,7"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="FontSize"        Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#9b4fff"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#888"/>
+                                <Setter Property="Foreground" Value="#ccc"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="Button" x:Key="SecondaryBtn" BasedOn="{StaticResource PrimaryBtn}">
+            <Setter Property="Background" Value="{DynamicResource BrushBg2}"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrushText}"/>
+        </Style>
+
+        <!-- ── Стиль заголовку GridView ── -->
+        <Style TargetType="GridViewColumnHeader" x:Key="SortableHeader">
+            <Setter Property="Background"             Value="{DynamicResource BrushHeader}"/>
+            <Setter Property="Foreground"             Value="{DynamicResource BrushText}"/>
+            <Setter Property="FontWeight"             Value="SemiBold"/>
+            <Setter Property="BorderBrush"            Value="{DynamicResource BrushBorder}"/>
+            <Setter Property="BorderThickness"        Value="0,0,1,1"/>
+            <Setter Property="Padding"                Value="6,4"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Cursor"                 Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridViewColumnHeader">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource BrushBg2}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrushAccent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- UA: Приховуємо grip (роздільник) між заголовками — залишаємо тільки ресайз -->
+        <!-- EN: Hide grip between headers — keep only resize functionality -->
+        <Style TargetType="GridViewColumnHeader" x:Key="HiddenGripHeader"
+               BasedOn="{StaticResource SortableHeader}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="GridViewColumnHeader">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── 0: Header ── -->
+        <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- UA: Заголовок програми з підписом автора (як у EaW DAT Localizer) -->
+            <!-- EN: App title with author signature (consistent with EaW DAT Localizer) -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="⚡" FontSize="20"
+               Foreground="{DynamicResource BrushAccent}"
+               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBlock Text="EaW Texture Converter"
+               FontSize="22" FontWeight="Bold"
+               Foreground="{DynamicResource BrushAccent}"
+               VerticalAlignment="Center"/>
+                <TextBlock Text="EMP_UA"
+               FontSize="13" FontWeight="Bold"
+               Foreground="{DynamicResource BrushAccentUa}"
+               VerticalAlignment="Bottom" Margin="10,0,0,3"/>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <!-- UA: Перемикач теми -->
+                <!-- EN: Theme toggle -->
+                <TextBlock Text="☀" Foreground="{DynamicResource BrushTextDim}"
+                           FontSize="16" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <ToggleButton IsChecked="{Binding IsDarkTheme, Mode=TwoWay}"
+                              Width="44" Height="22" Margin="0,0,12,0"/>
+                <TextBlock Text="🌙" Foreground="{DynamicResource BrushTextDim}"
+                           FontSize="14" VerticalAlignment="Center" Margin="0,0,16,0"/>
+
+                <!-- UA: Перемикач мови -->
+                <!-- EN: Language toggle -->
+                <TextBlock Text="UA" Foreground="{DynamicResource BrushAccentUa}"
+                           FontWeight="Bold" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <ToggleButton IsChecked="{Binding IsUkrainian, Mode=TwoWay}"
+                              Width="44" Height="22"/>
+                <TextBlock Text="EN" Foreground="{DynamicResource BrushTextDim}"
+                           FontWeight="Bold" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ── 1: Mod folder row ── -->
+        <Grid Grid.Row="1" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="110"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="{Binding LabelRootPath}"
+                       Foreground="{DynamicResource BrushTextDim}"
+                       VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding RootPath, UpdateSourceTrigger=PropertyChanged}"
+                     Background="{DynamicResource BrushBg2}"
+                     Foreground="{DynamicResource BrushText}"
+                     BorderBrush="{DynamicResource BrushAccent}" Padding="6,4"/>
+            <Button Grid.Column="2" Content="{Binding LabelBrowse}"
+                    Command="{Binding BrowseFolderCommand}"
+                    Style="{StaticResource PrimaryBtn}" Margin="6,0,0,0"/>
+            <Button Grid.Column="3" Content="{Binding LabelScanAll}"
+                    Command="{Binding ScanAllDdsCommand}"
+                    Style="{StaticResource SecondaryBtn}" Margin="6,0,0,0"/>
+        </Grid>
+
+        <!-- ── 2: Output folder row ── -->
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="110"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0" Text="{Binding LabelOutputPath}"
+                       Foreground="{DynamicResource BrushTextDim}"
+                       VerticalAlignment="Center"/>
+            <TextBox Grid.Column="1"
+                     Text="{Binding OutputPath, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding UseExeOutput}"
+                     Background="{DynamicResource BrushBg2}"
+                     Foreground="{DynamicResource BrushText}"
+                     BorderBrush="{DynamicResource BrushBorder}" Padding="6,4"/>
+            <CheckBox Grid.Column="2"
+                      IsChecked="{Binding UseExeOutput, Mode=TwoWay}"
+                      Content="{Binding LabelUseExe}"
+                      Foreground="{DynamicResource BrushText}"
+                      VerticalAlignment="Center" Margin="8,0,0,0"/>
+            <Button Grid.Column="3"
+                    Content="{Binding LabelChooseOutput}"
+                    Command="{Binding ChooseOutputFolderCommand}"
+                    IsEnabled="{Binding UseExeOutput, Converter={StaticResource InverseBool}}"
+                    Style="{StaticResource SecondaryBtn}" Margin="6,0,0,0"/>
+        </Grid>
+
+        <!-- ── 3: Toolbar ── -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="{Binding LabelAddManual}"
+                    Command="{Binding AddManualFileCommand}"
+                    Style="{StaticResource SecondaryBtn}" Margin="0,0,6,0"/>
+            <!-- UA: Чекбокс вибрати/зняти всі переїхав сюди з заголовку -->
+            <!-- EN: Select/deselect all checkbox moved here from header -->
+            <CheckBox IsChecked="{Binding AllSelected, Mode=TwoWay}"
+                      Content="{Binding LabelSelectAll}"
+                      Foreground="{DynamicResource BrushText}"
+                      VerticalAlignment="Center" Margin="8,0,0,0"/>
+        </StackPanel>
+
+        <!-- ── 4: File list ── -->
+        <ListView x:Name="FileListView"
+                  Grid.Row="4"
+                  ItemsSource="{Binding Files}"
+                  Background="{DynamicResource BrushBg1}"
+                  Foreground="{DynamicResource BrushText}"
+                  BorderBrush="{DynamicResource BrushBorder}"
+                  BorderThickness="1"
+                  GridViewColumnHeader.Click="FileListView_HeaderClick">
+            <ListView.View>
+                <GridView ColumnHeaderContainerStyle="{StaticResource SortableHeader}">
+
+                    <!-- UA: Колонка чекбоксу — без заголовку, без сортування -->
+                    <!-- EN: Checkbox column — no header, no sorting -->
+                    <GridViewColumn Width="36">
+                        <GridViewColumn.HeaderContainerStyle>
+                            <Style TargetType="GridViewColumnHeader"
+                                   BasedOn="{StaticResource SortableHeader}">
+                                <Setter Property="IsHitTestVisible" Value="False"/>
+                            </Style>
+                        </GridViewColumn.HeaderContainerStyle>
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                          HorizontalAlignment="Center"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+
+                    <GridViewColumn Header="{Binding DataContext.LabelColMod,
+                                            RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    DisplayMemberBinding="{Binding ModLabel}"
+                                    Width="110"
+                                    x:Name="ColMod"/>
+
+                    <GridViewColumn Header="{Binding DataContext.LabelColFile,
+                                            RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    DisplayMemberBinding="{Binding FileName}"
+                                    Width="220"
+                                    x:Name="ColFile"/>
+
+                    <GridViewColumn Header="{Binding DataContext.LabelColPath,
+                                            RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    DisplayMemberBinding="{Binding RelativePath}"
+                                    x:Name="ColPath"/>
+
+                    <GridViewColumn Header="{Binding DataContext.LabelColStatus,
+                                            RelativeSource={RelativeSource AncestorType=ListView}}"
+                                    Width="160"
+                                    x:Name="ColStatus">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Status}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground"
+                                                    Value="{DynamicResource BrushTextDim}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasError}" Value="True">
+                                                    <Setter Property="Foreground"
+                                                            Value="{DynamicResource BrushErr}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding HasError}" Value="False">
+                                                    <Setter Property="Foreground"
+                                                            Value="{DynamicResource BrushOk}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+
+        <!-- ── 5: Action buttons ── -->
+        <StackPanel Grid.Row="5" Orientation="Horizontal"
+                    HorizontalAlignment="Center" Margin="0,12,0,8">
+            <Button Content="{Binding LabelToPng}"
+                    Command="{Binding ConvertToPngCommand}"
+                    Style="{StaticResource PrimaryBtn}"
+                    FontSize="15" Padding="24,10" Margin="0,0,16,0"/>
+            <Button Content="{Binding LabelToDds}"
+                    Command="{Binding ConvertToDdsCommand}"
+                    Style="{StaticResource PrimaryBtn}"
+                    FontSize="15" Padding="24,10"
+                    Background="#1565C0"/>
+        </StackPanel>
+
+        <!-- ── 6: Progress + status ── -->
+        <Grid Grid.Row="6">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <ProgressBar Grid.Row="0"
+                         Value="{Binding Progress}" Maximum="100" Height="6"
+                         Foreground="{DynamicResource BrushAccent}"
+                         Background="{DynamicResource BrushBg2}"
+                         Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="1"
+                       Text="{Binding StatusMessage}"
+                       Foreground="{DynamicResource BrushTextDim}" FontSize="12"/>
+        </Grid>
+    </Grid>
+</Window>
