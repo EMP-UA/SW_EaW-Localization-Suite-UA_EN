@@ -4,7 +4,7 @@
 ; ==============================================================================
 
 #define AppName "Star Wars: Empire at War Українізатор"
-#define AppVersion "0.10"
+#define AppVersion "0.12"
 #define AppPublisher "EMP_UA"
 #define AppURL "https://t.me/EMP_UA"
 ; Унікальний ID проєкту (дві дужки {{ обов'язкові) / Unique project ID (two braces {{ are required)
