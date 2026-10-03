@@ -1,0 +1,19 @@
+# UA: Git сам визначає текстові файли й зберігає їх у репозиторії з LF;
+#     у робочій теці Windows вони можуть мати CRLF — це не вважається зміною.
+# EN: Git auto-detects text files and stores them with LF in the repository;
+#     in a Windows working tree they may carry CRLF — that is not treated as a change.
+* text=auto
+
+# UA: Скрипти Windows завжди з CRLF.
+# EN: Windows scripts always use CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# UA: Двійкові файли — без нормалізації.
+# EN: Binary files — no normalization.
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.ttf  binary
+*.dll  binary
+*.zip  binary

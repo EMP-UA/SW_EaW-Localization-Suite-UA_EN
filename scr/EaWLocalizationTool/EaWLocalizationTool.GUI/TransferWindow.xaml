@@ -1,0 +1,229 @@
+<Window x:Class="EaWLocalizationTool.GUI.TransferWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="UA: Перенесення перекладу: основна гра → доповнення / EN: Translation transfer: base game → expansion"
+        Height="760" Width="880" MinHeight="560" MinWidth="700"
+        Background="{DynamicResource BgSurface}"
+        Foreground="{DynamicResource TextPrim}"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False">
+
+    <!--
+        UA: Вікно збирає чотири файли — оригінал і переклад основної гри (донор),
+            оригінал і переклад доповнення (цільовий файл) — і ще до жодних змін показує, скільки
+            рядків збігається за ключем, скільки лише за англійським текстом, скільки
+            у конфлікті та скільки без відповідника. Індекс донора живе в пам'яті доти,
+            доки програма відкрита.
+        EN: The window collects four files — the base game's original and translation
+            (the donor), the expansion's original and translation (the target) — and,
+            before anything is changed, shows how many rows match by key, how many only
+            by English text, how many are in conflict and how many have no match. The
+            donor index stays in memory while the application is open.
+    -->
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ══ ПОЯСНЕННЯ / EXPLANATION ═════════════════════════════════════════ -->
+        <Border Grid.Row="0" Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,0,0,1"
+                Padding="14,10">
+            <TextBlock TextWrapping="Wrap" FontSize="12"
+                       Foreground="{DynamicResource TextPrim}"
+                       Text="UA: Зіставлення: за ключем, якщо англійський текст однаковий (без урахування регістру й пробілів), далі за англійським текстом. Рядки з позначкою вичитки, відмінною від «-», не перезаписуються; технічні рядки не змінюються.&#10;EN: Matching: by key when the English text is equal (ignoring case and whitespace), then by English text. Rows whose review mark is anything but &quot;-&quot; are not overwritten; technical rows are never changed."/>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="14,10">
+            <StackPanel>
+
+                <!-- ══ ОСНОВНА ГРА / BASE GAME ═════════════════════════════════ -->
+                <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Consolas"
+                           Foreground="{DynamicResource FlagBlue}" Margin="0,0,0,6"
+                           Text="ОСНОВНА ГРА / BASE GAME (джерело / donor)"/>
+
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource BdNorm}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource DarkBtn}"
+                                Content="📂 UA: Обрати / EN: Browse" VerticalAlignment="Center"
+                                Click="BrowseDonorOriginal_Click"/>
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock FontSize="{DynamicResource FontUI}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSec}"
+                                       Text="① UA: Оригінал (англійський DAT) / EN: Original (English DAT)"/>
+                            <TextBlock x:Name="DonorOriginalText" FontFamily="Consolas"
+                                       FontSize="{DynamicResource FontUI}" FontStyle="Italic"
+                                       Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis"
+                                       Margin="0,3,0,0" Text="UA: не вибрано / EN: not selected"/>
+                            <TextBlock x:Name="DonorOriginalMeta" FontSize="{DynamicResource FontUI}"
+                                       Foreground="{DynamicResource TextDim}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource BdNorm}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,14">
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource DarkBtn}"
+                                Content="📂 UA: Обрати / EN: Browse" VerticalAlignment="Center"
+                                Click="BrowseDonorTranslation_Click"/>
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock FontSize="{DynamicResource FontUI}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSec}"
+                                       Text="② UA: Переклад (DAT або TSV) / EN: Translation (DAT or TSV)"/>
+                            <TextBlock x:Name="DonorTranslationText" FontFamily="Consolas"
+                                       FontSize="{DynamicResource FontUI}" FontStyle="Italic"
+                                       Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis"
+                                       Margin="0,3,0,0" Text="UA: не вибрано / EN: not selected"/>
+                            <TextBlock x:Name="DonorTranslationMeta" FontSize="{DynamicResource FontUI}"
+                                       Foreground="{DynamicResource TextDim}" Margin="0,2,0,0"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- ══ ДОПОВНЕННЯ / EXPANSION ══════════════════════════════════ -->
+                <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Consolas"
+                           Foreground="{DynamicResource FlagYellow}" Margin="0,0,0,6"
+                           Text="ДОПОВНЕННЯ / EXPANSION (цільовий файл / target)"/>
+
+                <CheckBox x:Name="UseOpenCheck" Visibility="Collapsed" Margin="0,0,0,6"
+                          Foreground="{DynamicResource TextPrim}"
+                          Checked="UseOpenCheck_Changed" Unchecked="UseOpenCheck_Changed"/>
+
+                <Border x:Name="AddonOriginalCard" Background="{DynamicResource BgCard}"
+                        BorderBrush="{DynamicResource BdNorm}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,6">
+                    <DockPanel>
+                        <Button x:Name="AddonOriginalButton" DockPanel.Dock="Right"
+                                Style="{StaticResource DarkBtn}"
+                                Content="📂 UA: Обрати / EN: Browse" VerticalAlignment="Center"
+                                Click="BrowseAddonOriginal_Click"/>
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock FontSize="{DynamicResource FontUI}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSec}"
+                                       Text="③ UA: Оригінал (англійський DAT) / EN: Original (English DAT)"/>
+                            <TextBlock x:Name="AddonOriginalText" FontFamily="Consolas"
+                                       FontSize="{DynamicResource FontUI}" FontStyle="Italic"
+                                       Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis"
+                                       Margin="0,3,0,0" Text="UA: не вибрано / EN: not selected"/>
+                            <TextBlock x:Name="AddonOriginalMeta" FontSize="{DynamicResource FontUI}"
+                                       Foreground="{DynamicResource TextDim}" Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <Border x:Name="AddonTranslationCard" Background="{DynamicResource BgCard}"
+                        BorderBrush="{DynamicResource BdNorm}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,14">
+                    <DockPanel>
+                        <Button x:Name="AddonTranslationButton" DockPanel.Dock="Right"
+                                Style="{StaticResource DarkBtn}"
+                                Content="📂 UA: Обрати / EN: Browse" VerticalAlignment="Center"
+                                Click="BrowseAddonTranslation_Click"/>
+                        <StackPanel Margin="0,0,10,0">
+                            <TextBlock FontSize="{DynamicResource FontUI}" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource TextSec}"
+                                       Text="④ UA: Переклад (DAT або TSV, необов'язково) / EN: Translation (DAT or TSV, optional)"/>
+                            <TextBlock x:Name="AddonTranslationText" FontFamily="Consolas"
+                                       FontSize="{DynamicResource FontUI}" FontStyle="Italic"
+                                       Foreground="{DynamicResource TextDim}" TextTrimming="CharacterEllipsis"
+                                       Margin="0,3,0,0" Text="UA: не вибрано / EN: not selected"/>
+                            <TextBlock FontSize="{DynamicResource FontUI}"
+                                       Foreground="{DynamicResource TextDim}" Margin="0,2,0,0"
+                                       TextWrapping="Wrap"
+                                       Text="UA: Поточний переклад і статуси вичитки доповнення (напр. робочий TSV з теки review).&#10;EN: The expansion's current translation and review statuses (e.g. a working TSV from the review folder)."/>
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+
+                <!-- ══ СТАТИСТИКА / STATISTICS ═════════════════════════════════ -->
+                <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Consolas"
+                           Foreground="{DynamicResource Accent}" Margin="0,0,0,6"
+                           Text="АНАЛІЗ ЗБІГІВ / MATCH ANALYSIS"/>
+
+                <Border Background="{DynamicResource BgCard}" BorderBrush="{DynamicResource BdAcc}"
+                        BorderThickness="1" CornerRadius="6" Padding="12,10">
+                    <StackPanel>
+                        <Grid x:Name="StatsGrid">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                                <RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Text="UA: Основна гра: ключів із перекладом / EN: Base game: keys with a translation" Foreground="{DynamicResource TextSec}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" x:Name="StatDonorKeys" Foreground="{DynamicResource TextPrim}" FontFamily="Consolas" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="1" Text="UA: Основна гра: різних англійських текстів / EN: Base game: distinct English texts" Foreground="{DynamicResource TextSec}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="StatDonorTexts" Foreground="{DynamicResource TextPrim}" FontFamily="Consolas" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="2" Text="UA: Доповнення: рядків без технічних / EN: Expansion: rows excluding technical" Foreground="{DynamicResource TextSec}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="StatTargetRows" Foreground="{DynamicResource TextPrim}" FontFamily="Consolas" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <Border Grid.Row="3" Grid.ColumnSpan="2" Height="1" Margin="0,6"
+                                    Background="{DynamicResource BdNorm}"/>
+
+                            <TextBlock Grid.Row="4" Text="UA: Збіг за ключем (англійський текст однаковий) / EN: Key match (same English text)" Foreground="{DynamicResource StatusGreen}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="4" Grid.Column="1" x:Name="StatByKey" Foreground="{DynamicResource StatusGreen}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="5" Text="UA: Збіг лише за англійським текстом (ключ інший або відсутній) / EN: English-text match only (different or absent key)" Foreground="{DynamicResource StatusGreen}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="5" Grid.Column="1" x:Name="StatByText" Foreground="{DynamicResource StatusGreen}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="6" Text="UA: Конфлікти (кілька різних перекладів одного тексту) / EN: Conflicts (several distinct translations of one text)" Foreground="{DynamicResource StatusAmber}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="6" Grid.Column="1" x:Name="StatConflicts" Foreground="{DynamicResource StatusAmber}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="7" Text="UA: Ключ є в донорі, англійський текст інший / EN: Key in the donor, English text differs" Foreground="{DynamicResource StatusAmber}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="7" Grid.Column="1" x:Name="StatTextChanged" Foreground="{DynamicResource StatusAmber}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="8" Text="UA: Без відповідника / EN: No match" Foreground="{DynamicResource StatusRed}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="8" Grid.Column="1" x:Name="StatNoMatch" Foreground="{DynamicResource StatusRed}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="9" Text="UA: Ключі основної гри, яких немає в доповненні / EN: Base game keys absent from the expansion" Foreground="{DynamicResource TextSec}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="9" Grid.Column="1" x:Name="StatDonorOnly" Foreground="{DynamicResource TextPrim}" FontFamily="Consolas" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="10" Text="UA: Відхилено перевіркою символів / EN: Rejected by the character check" x:Name="StatRejectedLabel" Foreground="{DynamicResource StatusRed}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="10" Grid.Column="1" x:Name="StatRejected" Foreground="{DynamicResource StatusRed}" FontFamily="Consolas" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+
+                            <TextBlock Grid.Row="11" Text="UA: З них за ключем і за англійським текстом переклад РІЗНИЙ / EN: Of the key matches, key and English text give DIFFERENT translations" Foreground="{DynamicResource StatusAmber}" FontSize="{DynamicResource FontUILg}" Margin="0,2"/>
+                            <TextBlock Grid.Row="11" Grid.Column="1" x:Name="StatKeyTextDiffer" Foreground="{DynamicResource StatusAmber}" FontFamily="Consolas" FontWeight="SemiBold" FontSize="{DynamicResource FontUILg}" Margin="14,2,0,2" HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <TextBlock x:Name="HintText" TextWrapping="Wrap" Margin="0,10,0,0"
+                                   FontSize="{DynamicResource FontUI}"
+                                   Foreground="{DynamicResource StatusAmber}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- ══ КНОПКИ / BUTTONS ════════════════════════════════════════════════ -->
+        <Border Grid.Row="2" Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,1,0,0" Padding="14,10">
+            <DockPanel>
+                <TextBlock x:Name="ReadyText" DockPanel.Dock="Left" VerticalAlignment="Center"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource TextSec}"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button x:Name="ReportButton" Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                            Content="📊 UA: Звіт збігів / EN: Match report" IsEnabled="False"
+                            ToolTip="UA: Зберігає transfer\transfer_report {дата час}.tsv і відкриває його в програмі: вид збігу, переклад за ключем, варіанти за англійським текстом, прапорець розбіжності&#10;EN: Saves transfer\transfer_report {date time}.tsv and opens it in the application: match kind, translation by key, variants by English text, discrepancy flag"
+                            Click="ReportButton_Click"/>
+                    <Button Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                            Content="UA: Закрити / EN: Close" IsCancel="True"
+                            Click="CloseButton_Click"/>
+                    <Button x:Name="TransferRunButton" Style="{StaticResource PrimaryBtn}"
+                            Content="⇄ UA: Перенести / EN: Transfer" IsEnabled="False"
+                            Click="TransferRunButton_Click"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -1,6 +1,7 @@
 <Window x:Class="EaWLocalizationTool.GUI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
         Title="⚡ EaW DAT Localizer — EMP_UA"
         Height="740" Width="1300" MinHeight="540" MinWidth="920"
         Background="{DynamicResource BgBase}"
@@ -16,6 +17,20 @@
             without MC6007 error (which occurs with ContextMenu in Style.Setter).
     -->
     <Window.Resources>
+        <!--
+            UA: Готові позначки для колонки «Вичитка». Поле редаговане (ComboBox
+                IsEditable), тож замість готової позначки можна вписати довільний
+                коментар до рядка.
+            EN: Ready-made marks for the "Review" column. The field is editable
+                (ComboBox IsEditable), so a free-form per-row comment can be typed
+                instead of a ready-made mark.
+        -->
+        <x:Array x:Key="ReviewPresets" Type="{x:Type sys:String}">
+            <sys:String>+</sys:String>
+            <sys:String>+/-</sys:String>
+            <sys:String>-</sys:String>
+        </x:Array>
+
         <ContextMenu x:Key="RowCtxMenu">
             <MenuItem Header="📋 UA: Копіювати оригінал / EN: Copy original"
                       Click="CtxCopyOriginal_Click"/>
@@ -25,8 +40,29 @@
             <MenuItem Header="🗑 UA: Очистити переклад / EN: Clear translation"
                       Click="CtxClearTranslation_Click"/>
             <Separator/>
+            <MenuItem Header="⧉ UA: Застосувати до всіх дублікатів / EN: Apply to all duplicates"
+                      ToolTip="UA: Переклад цього рядка копіюється в усі рядки з таким самим англійським текстом&#10;EN: This row's translation is copied to every row with the same English text"
+                      Click="CtxApplyToDuplicates_Click"/>
+            <MenuItem Header="≈ UA: Застосувати до схожих з урахуванням регістру / EN: Apply to similar rows, case-aware"
+                      ToolTip="UA: Переклад цього рядка копіюється в рядки з тим самим англійським текстом, але іншим регістром; регістр перекладу підлаштовується під оригінал кожного рядка&#10;EN: This row's translation is copied to rows with the same English text in a different letter case; its case is adapted to each target's original"
+                      Click="CtxCopyToSimilar_Click"/>
+            <Separator/>
             <MenuItem Header="🔑 UA: Копіювати ключ / EN: Copy key"
                       Click="CtxCopyKey_Click"/>
+            <Separator/>
+            <!--
+                UA: Масове проставлення вичитки — діє на ВСІ виділені рядки
+                    (Ctrl/Shift + клік). Tag пункту несе значення позначки.
+                EN: Bulk review marking — applies to ALL selected rows
+                    (Ctrl/Shift + click). The item's Tag carries the mark value.
+            -->
+            <MenuItem Header="✓ UA: Вичитка для виділених / EN: Review for selected">
+                <MenuItem Header="+ UA: вичитано / EN: reviewed" Tag="+" Click="CtxReviewSet_Click"/>
+                <MenuItem Header="+/- UA: вичитано, є сумнів / EN: reviewed, in doubt" Tag="+/-" Click="CtxReviewSet_Click"/>
+                <MenuItem Header="- UA: не вичитано / EN: not reviewed" Tag="-" Click="CtxReviewSet_Click"/>
+                <MenuItem Header="✎ UA: Власний текст… / EN: Custom text…"
+                          Click="CtxReviewCustom_Click"/>
+            </MenuItem>
         </ContextMenu>
     </Window.Resources>
 
@@ -123,6 +159,15 @@
                         <Button Content="⚙" Style="{StaticResource DarkBtn}"
                                 ToolTip="UA: Конфіг та нотатки шляхів&#10;EN: Config and path notes"
                                 Click="ConfigButton_Click" Padding="9,5" Margin="0,0,6,0"/>
+                        <Button x:Name="TransferButton"
+                                Content="⇄ Перенесення / Transfer"
+                                Style="{StaticResource DarkBtn}"
+                                ToolTip="UA: Перенести переклад з основної гри (Empire at War) у доповнення (Forces of Corruption).&#10;Файли основної гри (оригінал + переклад) і доповнення вибираються у вікні; перед перенесенням показано, скільки рядків збігається за ключем і за англійським текстом.&#10;EN: Transfer the translation from the base game (Empire at War) into the expansion (Forces of Corruption).&#10;The base game files (original + translation) and the expansion are picked in the window; before the transfer it shows how many rows match by key and by English text."
+                                Click="TransferButton_Click" Margin="0,0,6,0"/>
+                        <Button x:Name="HomeButton" Content="⌂ На початок / Start"
+                                Style="{StaticResource DarkBtn}" Visibility="Collapsed"
+                                ToolTip="UA: Закрити відкриті файли й повернутися на стартовий екран (за незбережених змін програма запропонує зберегти DAT)&#10;EN: Close the open files and return to the start screen (with unsaved changes the application offers to save the DAT)"
+                                Click="HomeButton_Click" Margin="0,0,6,0"/>
                         <Button x:Name="ExportButton" Content="⬇ TSV"
                                 Style="{StaticResource DarkBtn}" IsEnabled="False"
                                 ToolTip="UA: Експортувати всі записи у TSV&#10;EN: Export all entries to TSV"
@@ -180,7 +225,7 @@
                         Background="{DynamicResource BgCard}"
                         BorderBrush="{DynamicResource BdNorm}" BorderThickness="1"
                         CornerRadius="6" Padding="12,8" Cursor="Hand"
-                        ToolTip="UA: TSV з вашого інструменту або перекладений DAT&#10;EN: TSV from your tool or a translated DAT"
+                        ToolTip="UA: TSV (у т.ч. робочий файл зі статусами вичитки) або перекладений DAT&#10;EN: TSV (including a working file with review statuses) or a translated DAT"
                         MouseLeftButtonUp="TransCard_Click">
                     <StackPanel>
                         <TextBlock FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
@@ -198,10 +243,12 @@
                     </StackPanel>
                 </Border>
 
-                <Border Grid.Column="4"
+                <Border Grid.Column="4" x:Name="OutCard"
                         Background="{DynamicResource BgCard}"
                         BorderBrush="{DynamicResource BdNorm}" BorderThickness="1"
-                        CornerRadius="6" Padding="12,8" Opacity="0.65">
+                        CornerRadius="6" Padding="12,8" Opacity="0.65" Cursor="Hand"
+                        ToolTip="UA: Клацніть, щоб зберегти новий DAT (те саме, що «Зберегти DAT»)&#10;EN: Click to save the new DAT (same as &quot;Save DAT&quot;)"
+                        MouseLeftButtonUp="OutCard_Click">
                     <StackPanel>
                         <TextBlock FontSize="{DynamicResource FontUI}" FontFamily="Consolas"
                                    FontWeight="SemiBold" Foreground="{DynamicResource Accent}"
@@ -261,7 +308,12 @@
                 <TextBlock x:Name="MergeWarnText" DockPanel.Dock="Left"
                            FontSize="{DynamicResource FontUI}"
                            Foreground="{DynamicResource StatusAmber}"
-                           VerticalAlignment="Center"/>
+                           VerticalAlignment="Center" Margin="0,0,14,0"/>
+                <TextBlock x:Name="ReviewStatText" DockPanel.Dock="Left"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource SafeColor}"
+                           VerticalAlignment="Center"
+                           ToolTip="UA: Вичитано — рядки з позначкою «+» або «+/-»; далі кількість за кожною позначкою / EN: Reviewed — rows marked &quot;+&quot; or &quot;+/-&quot;; then the count per mark"/>
             </DockPanel>
         </Border>
 
@@ -292,7 +344,19 @@
                     <Button x:Name="FilterIssues" Tag="issues"
                             Style="{StaticResource FilterBtn}"
                             Click="FilterButton_Click" Margin="0,0,4,0"
-                            ToolTip="UA: Рядки де переклад втратив \n %s або теги&#10;EN: Rows where translation lost \n %s or tags"/>
+                            ToolTip="UA: Рядки, де переклад змінив \n, \r, %s, [теги], &lt;теги&gt; або {модифікатори}&#10;EN: Rows where the translation changed \n, \r, %s, [tags], &lt;tags&gt; or {modifiers}"/>
+                    <Button x:Name="FilterDup"    Tag="dup"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"
+                            ToolTip="UA: Рядки з однаковим англійським текстом (кілька записів)&#10;EN: Rows sharing the same English text (several entries)"/>
+                    <Button x:Name="FilterDupDiff" Tag="dupdiff"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"
+                            ToolTip="UA: Дублікати та схожі рядки, переклади яких різняться за змістом (або частина не перекладена). Між схожими рядками різниця лише в регістрі чи пробілах не враховується («Argh!» / «argh!» → «Аргх!» / «аргх!»); пробіли й переноси на краях — це «Проблемні» та «Вирівняти краї».&#10;EN: Duplicates and similar rows whose translations differ in meaning (or are partly untranslated). Between similar rows a difference in case or whitespace alone is ignored (&quot;Argh!&quot; / &quot;argh!&quot; → &quot;Аргх!&quot; / &quot;аргх!&quot;); edge whitespace and line breaks are covered by &quot;Issues&quot; and &quot;Align edges&quot;."/>
+                    <Button x:Name="FilterSimilar" Tag="similar"
+                            Style="{StaticResource FilterBtn}"
+                            Click="FilterButton_Click" Margin="0,0,4,0"
+                            ToolTip="UA: Рядки, англійський текст яких збігається з іншими лише після відкидання регістру чи пробілів (на кшталт «On my way» / «On My Way» або «Fall out» / «Fall out »). Це різні рядки гри — не дублікати.&#10;EN: Rows whose English text matches others only after ignoring case or whitespace (like &quot;On my way&quot; / &quot;On My Way&quot; or &quot;Fall out&quot; / &quot;Fall out &quot;). These are different game strings, not duplicates."/>
                     <Button x:Name="FilterTech"   Tag="tech"
                             Style="{StaticResource FilterBtn}"
                             Click="FilterButton_Click" Margin="0,0,6,0"
@@ -307,13 +371,45 @@
                             Style="{StaticResource OrangeBtn}"
                             Click="ClearTechnical_Click" Margin="0,0,6,0"
                             ToolTip="UA: Видаляє переклади з технічних рядків (пробіли/роздільники).&#10;Критично для виправлення crawl-тексту!&#10;EN: Removes translations from technical entries.&#10;Critical for fixing crawl text!"/>
+                    <Button Content="↔ Вирівняти краї / Align edges"
+                            Style="{StaticResource DarkBtn}"
+                            Click="AlignEdges_Click" Margin="0,0,6,0"
+                            ToolTip="UA: Робить пробіли й переноси на початку та в кінці перекладу такими, як в оригіналі. Текст між краями не змінюється.&#10;EN: Makes the whitespace and line breaks at the start and end of the translation match the original. The text between the edges is not changed."/>
+                    <!-- UA: Підпис і фільтри вичитки — одна група: у WrapPanel переносяться разом.
+                         EN: The label and the review filters form one group: they wrap together in the WrapPanel. -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
+                        <TextBlock Text="UA: Вичитка / EN: Review:"
+                                   FontSize="{DynamicResource FontUI}"
+                                   Foreground="{DynamicResource TextSec}"
+                                   VerticalAlignment="Center" Margin="10,0,6,0"/>
+                        <Button x:Name="ReviewAll" Tag="all"
+                                Style="{StaticResource FilterBtn}"
+                                Click="ReviewFilterButton_Click" Margin="0,0,4,0"
+                                ToolTip="UA: Усі рядки незалежно від вичитки&#10;EN: All rows regardless of review"/>
+                        <Button x:Name="ReviewPlus" Tag="plus"
+                                Style="{StaticResource FilterBtn}"
+                                Click="ReviewFilterButton_Click" Margin="0,0,4,0"
+                                ToolTip="UA: Позначка «+» — вичитано&#10;EN: Mark &quot;+&quot; — reviewed"/>
+                        <Button x:Name="ReviewUnsure" Tag="unsure"
+                                Style="{StaticResource FilterBtn}"
+                                Click="ReviewFilterButton_Click" Margin="0,0,4,0"
+                                ToolTip="UA: Позначка «+/-» — вичитано, але є сумнів&#10;EN: Mark &quot;+/-&quot; — reviewed, but in doubt"/>
+                        <Button x:Name="ReviewNone" Tag="none"
+                                Style="{StaticResource FilterBtn}"
+                                Click="ReviewFilterButton_Click" Margin="0,0,4,0"
+                                ToolTip="UA: Позначка «-» — ще не вичитано&#10;EN: Mark &quot;-&quot; — not reviewed yet"/>
+                        <Button x:Name="ReviewComment" Tag="comment"
+                                Style="{StaticResource FilterBtn}"
+                                Click="ReviewFilterButton_Click" Margin="0,0,6,0"
+                                ToolTip="UA: Рядки з довільним коментарем замість готової позначки&#10;EN: Rows with a free-form comment instead of a ready-made mark"/>
+                    </StackPanel>
                     <Button Content="↺" Style="{StaticResource FilterBtn}"
                             Click="ClearSort_Click" Padding="8,4"
                             ToolTip="UA: Скинути сортування до порядку оригінального файлу&#10;EN: Reset sorting to original file order"/>
                 </WrapPanel>
                 <TextBlock x:Name="FilterCountText" DockPanel.Dock="Right"
-                           FontSize="{DynamicResource FontUI}"
-                           Foreground="{DynamicResource TextDim}"
+                           FontSize="{DynamicResource FontUILg}" FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextSec}" Margin="12,0,0,0"
                            VerticalAlignment="Center"/>
             </DockPanel>
         </Border>
@@ -351,7 +447,7 @@
                 <TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right"
                            FontSize="{DynamicResource FontUI}"
                            Foreground="{DynamicResource TextDim}"
-                           Text="▲▼ Клік заголовку — сортування  ·  ПКМ / RMB — меню  ·  2× клік — редагування / edit"/>
+                           Text="▲▼ Клік заголовку — сортування  ·  ПКМ / RMB — меню  ·  2× клік — редагування / edit  ·  Ctrl/Shift — мультивиділення / multi-select"/>
             </DockPanel>
         </Border>
 
@@ -378,6 +474,11 @@
                         Padding="16,8" Margin="0,16,0,0" FontSize="13"
                         HorizontalAlignment="Center"
                         Click="EmptyStateOpenBtn_Click"/>
+                <Button Content="⇄ Перенесення з основної гри / Transfer from base game"
+                        Style="{StaticResource DarkBtn}"
+                        Padding="16,8" Margin="0,8,0,0" FontSize="13"
+                        HorizontalAlignment="Center"
+                        Click="TransferButton_Click"/>
             </StackPanel>
 
             <DataGrid x:Name="MainGrid" Visibility="Collapsed"
@@ -385,7 +486,8 @@
                       CanUserAddRows="False" CanUserDeleteRows="False"
                       CanUserReorderColumns="False" CanUserResizeColumns="True"
                       CanUserSortColumns="True"
-                      SelectionMode="Single" SelectionUnit="FullRow"
+                      SelectionMode="Extended" SelectionUnit="FullRow"
+                      CellEditEnding="MainGrid_CellEditEnding"
                       Background="{DynamicResource RowBg}"
                       RowBackground="{DynamicResource RowBg}"
                       AlternatingRowBackground="{DynamicResource RowBgAlt}"
@@ -403,6 +505,7 @@
 
                 <DataGrid.ColumnHeaderStyle>
                     <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="ContentTemplateSelector" Value="{StaticResource BilingualSelector}"/>
                         <Setter Property="Background"      Value="{DynamicResource HdrBg}"/>
                         <Setter Property="Foreground"      Value="{DynamicResource TextSec}"/>
                         <Setter Property="FontSize"        Value="{DynamicResource FontTiny}"/>
@@ -502,6 +605,38 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
+                    <!--
+                        UA: Кількість рядків із таким самим англійським текстом («×3»);
+                            бурштиновий колір — переклади в групі відрізняються;
+                            «≈2» — схожі рядки (інший регістр чи пробіли), не дублікати.
+                        EN: The number of rows sharing the same English text ("×3");
+                            amber means the group's translations differ; "≈2" — similar
+                            rows (different case or whitespace), not duplicates.
+                    -->
+                    <DataGridTextColumn Header="Дубл. / Dup ▲▼"
+                                        Binding="{Binding DuplicateLabel}"
+                                        IsReadOnly="True" SortMemberPath="DuplicateCount"
+                                        Width="64">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize"          Value="{DynamicResource FontSm}"/>
+                                <Setter Property="Foreground"        Value="{DynamicResource TextDim}"/>
+                                <Setter Property="Padding"           Value="8,5"/>
+                                <Setter Property="VerticalAlignment" Value="Top"/>
+                                <Setter Property="ToolTip"           Value="{Binding DuplicateTip}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DuplicateLabel}" Value="">
+                                        <Setter Property="ToolTip" Value="{x:Null}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding DuplicateDiffer}" Value="True">
+                                        <Setter Property="Foreground" Value="{DynamicResource StatusAmber}"/>
+                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
                     <DataGridTemplateColumn
                         Header="Переклад (UA) ▲▼ / Translation — Double-click to edit"
                         SortMemberPath="Translated" Width="*">
@@ -571,6 +706,42 @@
                                          BorderThickness="2" Padding="6"
                                          SelectionBrush="{DynamicResource Accent}"
                                          VerticalAlignment="Stretch"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellEditingTemplate>
+                    </DataGridTemplateColumn>
+
+                    <!--
+                        UA: Статус вичитки. Подвійний клік відкриває редагований ComboBox
+                            із готовими позначками (+, -, +/-); можна вписати й власний
+                            коментар. Метадані GUI: у DAT не записуються, зберігаються
+                            у робочому TSV. SortMemberPath потрібен, бо колонка-шаблон
+                            без нього не сортується.
+                        EN: Review status. A double click opens an editable ComboBox with
+                            the ready-made marks (+, -, +/-); a custom comment can be typed
+                            instead. GUI metadata: not written to the DAT, kept in the
+                            working TSV. SortMemberPath is required because a template
+                            column cannot be sorted without it.
+                    -->
+                    <DataGridTemplateColumn Header="Вичитка / Review ▲▼"
+                                            SortMemberPath="ReviewStatus" Width="110">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ReviewStatus}" TextWrapping="Wrap"
+                                           Padding="8,5" VerticalAlignment="Top"
+                                           FontSize="{DynamicResource FontSm}"
+                                           Foreground="{DynamicResource TextSec}"
+                                           ToolTip="UA: 2× клік — обрати позначку (+, -, +/-) або вписати власний коментар&#10;EN: Double-click — pick a mark (+, -, +/-) or type a custom comment"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                        <DataGridTemplateColumn.CellEditingTemplate>
+                            <DataTemplate>
+                                <ComboBox IsEditable="True"
+                                          ItemsSource="{StaticResource ReviewPresets}"
+                                          Text="{Binding ReviewStatus, UpdateSourceTrigger=PropertyChanged}"
+                                          FontSize="{DynamicResource FontSm}"
+                                          Background="{DynamicResource InputBg}"
+                                          Foreground="{DynamicResource TextPrim}"
+                                          Margin="2" VerticalAlignment="Top"/>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellEditingTemplate>
                     </DataGridTemplateColumn>

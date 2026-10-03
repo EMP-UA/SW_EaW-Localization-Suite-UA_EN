@@ -1,0 +1,106 @@
+<Window x:Class="EaWLocalizationTool.GUI.TranslationConflictWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="UA: Конфлікти перекладу / EN: Translation conflicts"
+        Height="620" Width="1000" MinHeight="360" MinWidth="640"
+        Background="{DynamicResource BgSurface}"
+        Foreground="{DynamicResource TextPrim}"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ══ ПОЯСНЕННЯ / EXPLANATION ═════════════════════════════════════════ -->
+        <Border Grid.Row="0" Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,0,0,1"
+                Padding="12,10">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="12"
+                           Foreground="{DynamicResource TextPrim}"
+                           Text="UA: Для цих англійських рядків у донорі знайдено кілька різних перекладів (різні контексти в основній грі). Оберіть варіант для кожного рядка або залиште «— пропустити —», щоб переклад не переносився.&#10;EN: The donor has several distinct translations for these English strings (different contexts in the base game). Pick a variant for each string, or leave &quot;— skip —&quot; to not transfer a translation."/>
+                <TextBlock x:Name="SummaryText" Margin="0,6,0,0"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource TextSec}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ══ ТАБЛИЦЯ КОНФЛІКТІВ / CONFLICTS GRID ═════════════════════════════ -->
+        <DataGrid Grid.Row="1" x:Name="ConflictsGrid"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False"
+                  RowHeaderWidth="0" HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="{DynamicResource GridLine}"
+                  BorderThickness="0"
+                  Background="{DynamicResource RowBg}"
+                  RowBackground="{DynamicResource RowBg}"
+                  AlternatingRowBackground="{DynamicResource RowBgAlt}"
+                  Foreground="{DynamicResource TextPrim}"
+                  FontSize="{DynamicResource FontSm}">
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="ContentTemplateSelector" Value="{StaticResource BilingualSelector}"/>
+                    <Setter Property="Background"      Value="{DynamicResource HdrBg}"/>
+                    <Setter Property="Foreground"      Value="{DynamicResource TextSec}"/>
+                    <Setter Property="FontWeight"      Value="SemiBold"/>
+                    <Setter Property="Padding"         Value="10,8"/>
+                    <Setter Property="BorderBrush"     Value="{DynamicResource BdAcc}"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="UA: Англійський оригінал / EN: English original"
+                                    Binding="{Binding Original}" Width="2*" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                            <Setter Property="Padding"      Value="8,5"/>
+                            <Setter Property="Foreground"   Value="{DynamicResource TextPrim}"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTemplateColumn Header="UA: Обрати переклад / EN: Choose translation" Width="2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <ComboBox ItemsSource="{Binding Options}"
+                                      SelectedItem="{Binding Selected, Mode=TwoWay}"
+                                      Margin="2" Padding="4,3"
+                                      HorizontalContentAlignment="Stretch">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" MaxWidth="380"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ══ КНОПКИ / BUTTONS ════════════════════════════════════════════════ -->
+        <Border Grid.Row="2" Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                        Content="UA: Пропустити всі / EN: Skip all"
+                        Click="SkipAllButton_Click"/>
+                <Button Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                        Content="UA: Скасувати / EN: Cancel"
+                        IsCancel="True" Click="CancelButton_Click"/>
+                <Button Style="{StaticResource PrimaryBtn}"
+                        Content="✓ UA: Застосувати / EN: Apply"
+                        IsDefault="True" Click="ApplyButton_Click"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

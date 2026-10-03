@@ -119,6 +119,12 @@ public static class DatProcessor
         byte[] origRaw,
         IReadOnlyDictionary<string, string> translations)
     {
+        // UA: Перевірка набору символів перед будь-яким записом
+        // EN: Character set check before anything is written
+        foreach (var value in translations.Values)
+            if (!TextGuard.IsClean(value))
+                throw new InvalidDataException(TextGuard.RejectMessage);
+
         uint count = BitConverter.ToUInt32(origRaw, 0);
 
         // UA: Зчитуємо індексну таблицю зі збереженням сирих байтів
@@ -230,22 +236,106 @@ public static class DatProcessor
     }
 
     /// <summary>
+    /// UA: Читає з TSV пари «оригінал / переклад» для кожного ключа.
+    ///     Колонка оригіналу (назва містить "Original") необов'язкова: якщо її немає,
+    ///     Original = null. Колонка перекладу (назва містить "Translat") обов'язкова.
+    ///     Порожні переклади пропускаються.
+    /// EN: Reads original/translation pairs per key from a TSV.
+    ///     The original column (name contains "Original") is optional: when absent,
+    ///     Original = null. The translation column (name contains "Translat") is required.
+    ///     Empty translations are skipped.
+    /// </summary>
+    public static List<(string Key, string? Original, string Translation)> ParseTsvPairs(string path)
+    {
+        var result = new List<(string, string?, string)>();
+        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        if (lines.Length < 2) return result;
+
+        string[] headers = lines[0].TrimStart('\uFEFF').Split('\t');
+        int ki = Array.FindIndex(headers, h => h.Trim().Equals("Key", StringComparison.OrdinalIgnoreCase));
+        int oi = Array.FindIndex(headers, h => h.Trim().Contains("Original", StringComparison.OrdinalIgnoreCase));
+        int ti = Array.FindIndex(headers, h => h.Trim().Contains("Translat", StringComparison.OrdinalIgnoreCase));
+
+        if (ki < 0 || ti < 0)
+            throw new InvalidDataException("Не знайдено колонки Key/TranslatedText / Key/TranslatedText columns not found");
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i])) continue;
+            string[] cols = lines[i].Split('\t');
+            if (Math.Max(ki, ti) >= cols.Length) continue;
+
+            string key = cols[ki].Trim();
+            string trans = cols[ti].Replace("\\n", "\n");
+            if (string.IsNullOrEmpty(key) || string.IsNullOrWhiteSpace(trans)) continue;
+
+            string? orig = oi >= 0 && oi < cols.Length ? cols[oi].Replace("\\n", "\n") : null;
+            result.Add((key, orig, trans));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// UA: Читає з TSV статуси вичитки (колонка, назва якої містить "Review") → Key → ReviewStatus.
+    ///     Якщо колонки немає — повертає порожній словник.
+    /// EN: Reads review statuses from a TSV (column whose name contains "Review") → Key → ReviewStatus.
+    ///     Returns an empty dictionary when the column is absent.
+    /// </summary>
+    public static Dictionary<string, string> ParseTsvReviews(string path)
+    {
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        string[] lines = File.ReadAllLines(path, Encoding.UTF8);
+        if (lines.Length < 2) return map;
+
+        string[] headers = lines[0].TrimStart('\uFEFF').Split('\t');
+        int ki = Array.FindIndex(headers, h => h.Trim().Equals("Key", StringComparison.OrdinalIgnoreCase));
+        int ri = Array.FindIndex(headers, h => h.Trim().Contains("Review", StringComparison.OrdinalIgnoreCase));
+        if (ki < 0 || ri < 0) return map;
+
+        for (int i = 1; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i])) continue;
+            string[] cols = lines[i].Split('\t');
+            if (Math.Max(ki, ri) >= cols.Length) continue;
+
+            string key = cols[ki].Trim();
+            string status = cols[ri].Trim();
+            if (!string.IsNullOrEmpty(key) && status.Length > 0) map[key] = status;
+        }
+
+        return map;
+    }
+
+    /// <summary>
     /// UA: Експортує записи у TSV файл (UTF-8 з BOM).
+    ///     Якщо передано reviews — додає четверту колонку ReviewStatus.
     /// EN: Exports entries to TSV file (UTF-8 with BOM).
+    ///     When reviews is supplied, a fourth ReviewStatus column is added.
     /// </summary>
     public static void ExportTsv(string path, IEnumerable<DatEntry> entries,
-        IReadOnlyDictionary<string, string>? translations = null)
+        IReadOnlyDictionary<string, string>? translations = null,
+        IReadOnlyDictionary<string, string>? reviews = null)
     {
         static string Esc(string s) => s.Replace("\n", "\\n").Replace("\t", " ");
 
         using var sw = new StreamWriter(path, false,
             new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
 
-        sw.WriteLine("Key\tOriginalText\tTranslatedText");
+        sw.WriteLine(reviews is null
+            ? "Key\tOriginalText\tTranslatedText"
+            : "Key\tOriginalText\tTranslatedText\tReviewStatus");
+
         foreach (var e in entries)
         {
             string trans = translations?.TryGetValue(e.Key, out var t) == true ? t : "";
-            sw.WriteLine($"{Esc(e.Key)}\t{Esc(e.OriginalText)}\t{Esc(trans)}");
+            string line = $"{Esc(e.Key)}\t{Esc(e.OriginalText)}\t{Esc(trans)}";
+            if (reviews is not null)
+            {
+                string review = reviews.TryGetValue(e.Key, out var r) ? r : "";
+                line += "\t" + Esc(review);
+            }
+            sw.WriteLine(line);
         }
     }
 }

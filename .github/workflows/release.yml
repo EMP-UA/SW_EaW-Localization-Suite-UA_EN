@@ -1,0 +1,319 @@
+# =============================================================================
+# Release — автоматична збірка та публікація релізу
+# Release — automated build and publish
+# =============================================================================
+# UA: Збирає EaWLocalizationTool.GUI та EaWTextureConverter у трьох варіантах
+#     і публікує GitHub Release.
+#       • generic — залежить від встановленого .NET 10 Desktop Runtime
+#       • win-x64 — самодостатня збірка для 64-бітної Windows (.NET не потрібен)
+#       • win-x86 — самодостатня збірка для 32-бітної Windows (.NET не потрібен)
+#
+#     Запуск:
+#       • пуш тега виду vX.Y.Z (напр. v1.1.0);
+#       • вручну (Actions → Release → Run workflow) із вказанням наявного тега.
+#
+#     Опис релізу береться з розділу «## [X.Y.Z]» файлу CHANGELOG.md.
+#     Якщо такого розділу немає, збірка зупиняється ще до компіляції.
+#     До релізу додаються SHA256SUMS.txt із контрольними сумами архівів і
+#     підтвердження походження збірки (build provenance attestation), яке
+#     перевіряється командою:
+#       gh attestation verify <архів> --repo EMP-UA/SW_EaW-Localization-Suite-UA_EN
+#
+#     Nexus Mods: після публікації релізу архіви `generic` завантажуються як нова
+#     версія наявних файлів на Nexus Mods. Крок вмикається змінними репозиторію
+#     NEXUS_GUI_FILE_ID / NEXUS_TEXTURE_FILE_ID і секретом NEXUSMODS_API_KEY;
+#     без змінних завдання пропускається.
+#
+# EN: Builds EaWLocalizationTool.GUI and EaWTextureConverter in three variants
+#     and publishes a GitHub Release.
+#       • generic — requires an installed .NET 10 Desktop Runtime
+#       • win-x64 — self-contained build for 64-bit Windows (no .NET needed)
+#       • win-x86 — self-contained build for 32-bit Windows (no .NET needed)
+#
+#     Triggers:
+#       • pushing a tag of the form vX.Y.Z (e.g. v1.1.0);
+#       • manually (Actions → Release → Run workflow) with an existing tag.
+#
+#     The release notes come from the "## [X.Y.Z]" section of CHANGELOG.md.
+#     If that section is missing, the run stops before compiling anything.
+#     SHA256SUMS.txt with the archives' checksums and a build provenance
+#     attestation are attached to the release; the attestation is verified with:
+#       gh attestation verify <archive> --repo EMP-UA/SW_EaW-Localization-Suite-UA_EN
+#
+#     Nexus Mods: after the release is published, the `generic` archives are uploaded
+#     as a new version of the existing files on Nexus Mods. The step is enabled by the
+#     repository variables NEXUS_GUI_FILE_ID / NEXUS_TEXTURE_FILE_ID and the secret
+#     NEXUSMODS_API_KEY; without the variables the job is skipped.
+# =============================================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'UA: Наявний тег релізу (напр. v1.1.0) / EN: Existing release tag (e.g. v1.1.0)'
+        required: true
+        type: string
+
+# UA: Мінімальні права за замовчуванням; запис потрібен лише завданню publish.
+# EN: Least-privilege defaults; only the publish job needs write access.
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # UA: Визначає тег і версію, дістає опис релізу з CHANGELOG.md.
+  # EN: Resolves the tag and version, extracts the release notes from CHANGELOG.md.
+  # ---------------------------------------------------------------------------
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - name: Resolve tag and version
+        id: resolve
+        shell: bash
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          TAG="${INPUT_TAG:-$REF_NAME}"
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Tag '$TAG' does not match vX.Y.Z"
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve.outputs.tag }}
+
+      - name: Extract release notes from CHANGELOG.md
+        shell: bash
+        env:
+          VERSION: ${{ steps.resolve.outputs.version }}
+        run: |
+          if [ ! -f CHANGELOG.md ]; then
+            echo "::error::CHANGELOG.md not found"
+            exit 1
+          fi
+          # UA: Розділ від заголовка "## [VERSION]" до наступного "## [" або кінця файлу.
+          # EN: The section from the "## [VERSION]" heading up to the next "## [" or end of file.
+          awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 { capture = 1; next }
+            capture && index($0, "## [") == 1 { exit }
+            capture { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "::error::CHANGELOG.md has no section '## [$VERSION]'"
+            exit 1
+          fi
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release-notes.md
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # UA: Збирає кожну програму в кожному варіанті (2 × 3 = 6 архівів).
+  # EN: Builds each application in each variant (2 × 3 = 6 archives).
+  # ---------------------------------------------------------------------------
+  build:
+    name: Build ${{ matrix.app.name }} (${{ matrix.variant }})
+    needs: prepare
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        app:
+          - name: EaWLocalizationTool.GUI
+            project: scr/EaWLocalizationTool/EaWLocalizationTool.GUI/EaWLocalizationTool.GUI.csproj
+          - name: EaWTextureConverter
+            project: scr/EaWTextureConverter/EaWTextureConverter.csproj
+        variant: [generic, win-x64, win-x86]
+    steps:
+      - name: Checkout tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish
+        shell: pwsh
+        env:
+          PROJECT: ${{ matrix.app.project }}
+          VARIANT: ${{ matrix.variant }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'publish'
+          $publishArgs = @(
+            'publish', $env:PROJECT,
+            '-c', 'Release',
+            '-o', $out,
+            "-p:Version=$env:VERSION",
+            '-p:IncludeSourceRevisionInInformationalVersion=false',
+            '-p:DebugType=none',
+            '-p:DebugSymbols=false'
+          )
+          if ($env:VARIANT -eq 'generic') {
+            $publishArgs += @('--self-contained', 'false')
+          } else {
+            $publishArgs += @('-r', $env:VARIANT, '--self-contained', 'true')
+          }
+          dotnet @publishArgs
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)" }
+
+      - name: Package
+        shell: pwsh
+        env:
+          APP: ${{ matrix.app.name }}
+          VARIANT: ${{ matrix.variant }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          $out = Join-Path $env:RUNNER_TEMP 'publish'
+          $zip = "$($env:APP)_$($env:TAG)_$($env:VARIANT).zip"
+          Compress-Archive -Path (Join-Path $out '*') -DestinationPath $zip -CompressionLevel Optimal
+          Get-Item $zip | Format-List Name, Length
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: zip-${{ matrix.app.name }}-${{ matrix.variant }}
+          path: '*.zip'
+          if-no-files-found: error
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # UA: Створює (або оновлює) GitHub Release і додає архіви та контрольні суми.
+  # EN: Creates (or updates) the GitHub Release and attaches the archives and checksums.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: zip-*
+          path: dist
+          merge-multiple: true
+
+      - name: Download release notes
+        uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+
+      - name: Checksums
+        shell: bash
+        working-directory: dist
+        run: |
+          sha256sum -- *.zip | tee SHA256SUMS.txt
+
+      # UA: Підтвердження, що архіви зібрано цим workflow з коду репозиторію.
+      # EN: Proof that the archives were built by this workflow from the repository code.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'dist/*.zip'
+
+      - name: Create or update release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TAG" --notes-file release-notes.md
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" dist/* \
+              --title "$TAG" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
+
+  # ---------------------------------------------------------------------------
+  # UA: Завантажує архіви generic на Nexus Mods як нову версію наявних файлів.
+  #     Потрібні: секрет NEXUSMODS_API_KEY; змінні репозиторію NEXUS_GUI_FILE_ID
+  #     і/або NEXUS_TEXTURE_FILE_ID («API File ID» у властивостях файлу на сторінці
+  #     керування файлами моду); необов'язково NEXUS_GUI_MOD_ID / NEXUS_TEXTURE_MOD_ID —
+  #     «API Unique Mod ID» там само (це не номер моду з адреси) — для запису журналу
+  #     змін. Журнал лише доповнюється.
+  #     Реліз GitHub до цього часу вже опубліковано, тож збій цього завдання його не скасовує.
+  #     Дію закріплено за хешем коміту (тег v1.0.0-beta.10).
+  # EN: Uploads the generic archives to Nexus Mods as a new version of the existing files.
+  #     Required: the NEXUSMODS_API_KEY secret; the NEXUS_GUI_FILE_ID and/or
+  #     NEXUS_TEXTURE_FILE_ID repository variables ("API File ID" in the file's properties
+  #     on the mod's file management page); optionally NEXUS_GUI_MOD_ID /
+  #     NEXUS_TEXTURE_MOD_ID — "API Unique Mod ID" on the same page (not the mod number
+  #     from the address) — to record a changelog. The changelog is append-only.
+  #     The GitHub release is already published by then, so a failure here does not undo it.
+  #     The action is pinned to a commit hash (tag v1.0.0-beta.10).
+  # ---------------------------------------------------------------------------
+  nexus:
+    name: Upload to Nexus Mods
+    needs: [prepare, publish]
+    if: ${{ vars.NEXUS_GUI_FILE_ID != '' || vars.NEXUS_TEXTURE_FILE_ID != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download generic archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: zip-*-generic
+          merge-multiple: true
+
+      - name: Upload EaWLocalizationTool.GUI
+        if: ${{ vars.NEXUS_GUI_FILE_ID != '' }}
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ vars.NEXUS_GUI_FILE_ID }}
+          filename: EaWLocalizationTool.GUI_${{ needs.prepare.outputs.tag }}_generic.zip
+          version: ${{ needs.prepare.outputs.version }}
+          display_name: EaWLocalizationTool.GUI ${{ needs.prepare.outputs.tag }}
+          category: main
+          archive_existing_version: 'true'
+          update_mod_version: 'true'
+          mod_id: ${{ vars.NEXUS_GUI_MOD_ID }}
+          changelog: ${{ vars.NEXUS_GUI_MOD_ID != '' && format('https://github.com/{0}/releases/tag/{1}', github.repository, needs.prepare.outputs.tag) || '' }}
+
+      - name: Upload EaWTextureConverter
+        if: ${{ vars.NEXUS_TEXTURE_FILE_ID != '' }}
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23 # v1.0.0-beta.10
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ vars.NEXUS_TEXTURE_FILE_ID }}
+          filename: EaWTextureConverter_${{ needs.prepare.outputs.tag }}_generic.zip
+          version: ${{ needs.prepare.outputs.version }}
+          display_name: EaWTextureConverter ${{ needs.prepare.outputs.tag }}
+          category: main
+          archive_existing_version: 'true'
+          update_mod_version: 'true'
+          mod_id: ${{ vars.NEXUS_TEXTURE_MOD_ID }}
+          changelog: ${{ vars.NEXUS_TEXTURE_MOD_ID != '' && format('https://github.com/{0}/releases/tag/{1}', github.repository, needs.prepare.outputs.tag) || '' }}

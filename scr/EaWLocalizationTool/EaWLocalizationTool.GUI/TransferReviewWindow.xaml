@@ -1,0 +1,190 @@
+<Window x:Class="EaWLocalizationTool.GUI.TransferReviewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="UA: Підтвердження перенесення / EN: Transfer review"
+        Height="720" Width="1440" MinHeight="420" MinWidth="900"
+        Background="{DynamicResource BgSurface}"
+        Foreground="{DynamicResource TextPrim}"
+        FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner">
+
+    <!--
+        UA: Контекстні меню комірок. Обробники подій не можна задавати всередині Style або
+            DataTemplate, тому меню оголошено тут і підключено за посиланням.
+        EN: Cell context menus. Event handlers cannot be set inside a Style or DataTemplate,
+            so the menus are declared here and attached by reference.
+    -->
+    <Window.Resources>
+        <ContextMenu x:Key="CopyMenu">
+            <MenuItem Header="UA: Копіювати значення / EN: Copy value"
+                      Click="CtxCopy_Click"/>
+        </ContextMenu>
+        <ContextMenu x:Key="TransMenu">
+            <MenuItem Header="UA: Копіювати значення / EN: Copy value"
+                      Click="CtxCopy_Click"/>
+            <Separator/>
+            <MenuItem Header="UA: Внести в результат (замінити) / EN: Put into result (replace)"
+                      Click="CtxToResult_Click"/>
+            <MenuItem Header="UA: Додати до результату / EN: Append to result"
+                      Click="CtxAppend_Click"/>
+            <MenuItem Header="UA: Внести всі варіанти в результат / EN: Put all variants into result"
+                      Click="CtxAllVariants_Click"/>
+            <Separator/>
+            <MenuItem Header="⧉ UA: Застосувати результат до рядків з тим самим англійським текстом / EN: Apply the result to rows with the same English text"
+                      Click="CtxResultToDuplicates_Click"/>
+        </ContextMenu>
+        <ContextMenu x:Key="ResultMenu">
+            <MenuItem Header="UA: Копіювати значення / EN: Copy value"
+                      Click="CtxCopy_Click"/>
+            <Separator/>
+            <MenuItem Header="⧉ UA: Застосувати результат до рядків з тим самим англійським текстом / EN: Apply the result to rows with the same English text"
+                      Click="CtxResultToDuplicates_Click"/>
+        </ContextMenu>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ══ ПОЯСНЕННЯ / EXPLANATION ═════════════════════════════════════════ -->
+        <Border Grid.Row="0" Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,0,0,1"
+                Padding="12,10">
+            <StackPanel>
+                <TextBlock TextWrapping="Wrap" FontSize="12"
+                           Foreground="{DynamicResource TextPrim}"
+                           Text="UA: Для цих рядків ключ є в основній грі, але англійський текст за цим ключем інший. Колонка «Результат» — що буде записано в доповнення (2× клік — редагувати). Правий клік по комірці: копіювати значення, внести його в результат або додати до результату, внести всі варіанти (зайве потім видаліть), застосувати результат до рядків з таким самим англійським текстом. Кнопки внизу зрівнюють виділені рядки з основною грою за ключем або за фразою (Ctrl+A — усі); за замовчуванням результат уже підібрано, тому торкатися рядків потрібно лише там, де він не влаштовує. «Застосувати» записує результат і автоматично зберігає новий DAT та робочий TSV з міткою часу.&#10;EN: For these rows the key exists in the base game, but the English text under that key differs. The &quot;Result&quot; column is what will be written to the expansion (double-click to edit). Right-click a cell: copy the value, put it into the result or append it to the result, insert all variants (delete the extra afterwards), apply the result to rows with the same English text. The buttons below match the selected rows to the base game by key or by phrase (Ctrl+A — all); the result is already pre-filled by default, so touch rows only where it is not what you want. &quot;Apply&quot; writes the result and automatically saves a new time-stamped DAT and working TSV."/>
+                <TextBlock x:Name="SummaryText" Margin="0,6,0,0"
+                           FontSize="{DynamicResource FontUI}"
+                           Foreground="{DynamicResource TextSec}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ══ ТАБЛИЦЯ / GRID ══════════════════════════════════════════════════ -->
+        <DataGrid Grid.Row="1" x:Name="ReviewGrid"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False" CanUserDeleteRows="False"
+                  SelectionUnit="FullRow" SelectionMode="Extended"
+                  RowHeaderWidth="0" HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="{DynamicResource GridLine}"
+                  BorderThickness="0"
+                  Background="{DynamicResource RowBg}"
+                  RowBackground="{DynamicResource RowBg}"
+                  AlternatingRowBackground="{DynamicResource RowBgAlt}"
+                  Foreground="{DynamicResource TextPrim}"
+                  FontSize="{DynamicResource FontSm}">
+
+            <DataGrid.ColumnHeaderStyle>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="ContentTemplateSelector" Value="{StaticResource BilingualSelector}"/>
+                    <Setter Property="Background"      Value="{DynamicResource HdrBg}"/>
+                    <Setter Property="Foreground"      Value="{DynamicResource TextSec}"/>
+                    <Setter Property="FontWeight"      Value="SemiBold"/>
+                    <Setter Property="Padding"         Value="10,8"/>
+                    <Setter Property="BorderBrush"     Value="{DynamicResource BdAcc}"/>
+                    <Setter Property="BorderThickness" Value="0,0,0,2"/>
+                </Style>
+            </DataGrid.ColumnHeaderStyle>
+
+            <DataGrid.Resources>
+                <!-- UA: Англійські колонки: праве меню — копіювання. EN: English columns: the right-click menu copies. -->
+                <Style x:Key="WrapCell" TargetType="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap"/>
+                    <Setter Property="Padding"      Value="8,5"/>
+                    <Setter Property="VerticalAlignment" Value="Top"/>
+                    <Setter Property="ContextMenu" Value="{StaticResource CopyMenu}"/>
+                </Style>
+
+                <!-- UA: Колонки перекладів: копіювання та внесення в результат. EN: Translation columns: copy and put into the result. -->
+                <Style x:Key="TransCell" TargetType="TextBlock" BasedOn="{StaticResource WrapCell}">
+                    <Setter Property="ContextMenu" Value="{StaticResource TransMenu}"/>
+                </Style>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Key" Binding="{Binding Key}" Width="150" IsReadOnly="True"
+                                    ElementStyle="{StaticResource WrapCell}"/>
+                <DataGridTextColumn Header="UA: Англійська, доповнення / EN: English, expansion"
+                                    Binding="{Binding TargetOriginal}" Width="1.4*" IsReadOnly="True"
+                                    ElementStyle="{StaticResource WrapCell}"/>
+                <DataGridTextColumn Header="UA: Англійська, основна гра (за ключем) / EN: English, base game (by key)"
+                                    Binding="{Binding DonorOriginal}" Width="1.4*" IsReadOnly="True"
+                                    ElementStyle="{StaticResource WrapCell}"/>
+                <DataGridTextColumn Header="UA: Переклад, доповнення (поточний) / EN: Translation, expansion (current)"
+                                    Binding="{Binding Current}" Width="1.4*" IsReadOnly="True"
+                                    ElementStyle="{StaticResource TransCell}"/>
+                <DataGridTextColumn Header="UA: Переклад, основна гра (за ключем) / EN: Translation, base game (by key)"
+                                    Binding="{Binding ByKey}" Width="1.4*" IsReadOnly="True"
+                                    ElementStyle="{StaticResource TransCell}"/>
+                <DataGridTextColumn Header="UA: Переклад, основна гра (за фразою) / EN: Translation, base game (by phrase)"
+                                    Binding="{Binding ByPhrase}" Width="1.4*" IsReadOnly="True"
+                                    ElementStyle="{StaticResource TransCell}"/>
+
+                <!--
+                    UA: Результат — те, що буде записано. Відображення й редагування, як у
+                        головному вікні: перенос рядків за шириною, 2× клік відкриває
+                        багаторядкове поле.
+                    EN: The result — what will be written. Display and editing as in the main
+                        window: wrapped text, a double-click opens a multi-line box.
+                -->
+                <DataGridTemplateColumn Header="UA: Результат (2× клік — редагувати) / EN: Result (double-click to edit)"
+                                        Width="2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Result}" TextWrapping="Wrap" Padding="8,5"
+                                       VerticalAlignment="Top"
+                                       FontSize="{DynamicResource FontSm}"
+                                       Foreground="{DynamicResource TextPrim}"
+                                       ContextMenu="{StaticResource ResultMenu}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding Result, UpdateSourceTrigger=PropertyChanged}"
+                                     AcceptsReturn="True" AcceptsTab="False"
+                                     TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                     MinHeight="72" FontSize="{DynamicResource FontSm}"
+                                     Background="{DynamicResource InputBg}"
+                                     Foreground="{DynamicResource TextPrim}"
+                                     CaretBrush="{DynamicResource TextPrim}"
+                                     BorderBrush="{DynamicResource Accent}"
+                                     BorderThickness="2" Padding="6"
+                                     SelectionBrush="{DynamicResource Accent}"
+                                     VerticalAlignment="Stretch"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ══ КНОПКИ / BUTTONS ════════════════════════════════════════════════ -->
+        <Border Grid.Row="2" Background="{DynamicResource BgCard}"
+                BorderBrush="{DynamicResource BdAcc}" BorderThickness="0,1,0,0"
+                Padding="12,8">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
+                    <Button Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                            Content="UA: Виділені: зрівняти з основною грою за ключем / EN: Selected: match the base game by key"
+                            ToolTip="UA: У «Результат» ставиться переклад основної гри за ключем (рядки без перекладу за ключем не змінюються)&#10;EN: The base game's translation by key is put into the Result (rows without a translation by key stay as they are)"
+                            Click="UseByKey_Click"/>
+                    <Button Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                            Content="UA: Виділені: зрівняти з основною грою за фразою / EN: Selected: match the base game by phrase"
+                            ToolTip="UA: У «Результат» ставиться переклад основної гри за цією англійською фразою (рядки без такої фрази не змінюються)&#10;EN: The base game's translation of this English phrase is put into the Result (rows without such a phrase stay as they are)"
+                            Click="UseByPhrase_Click"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource DarkBtn}" Margin="0,0,8,0"
+                            Content="UA: Скасувати перенесення / EN: Cancel transfer"
+                            IsCancel="True" Click="CancelButton_Click"/>
+                    <Button Style="{StaticResource PrimaryBtn}"
+                            Content="✓ UA: Застосувати / EN: Apply"
+                            IsDefault="True" Click="ApplyButton_Click"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

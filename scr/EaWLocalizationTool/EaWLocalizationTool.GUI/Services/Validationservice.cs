@@ -6,7 +6,9 @@ namespace EaWLocalizationTool.GUI.Services;
 /// UA: Перевіряє чи переклад зберігає всі спецсимволи оригіналу.
 ///
 ///     ПЕРЕВІРЯЄТЬСЯ:
-///     • Кількість переносів рядків \n
+///     • Кількість переносів рядків \n та символів повернення каретки \r
+///     • Пробіли й переноси на початку та в кінці рядка: мають збігатися з оригіналом
+///     • Фігурні модифікатори {..}: наявність, вміст і кількість дужок { }
 ///     • Формат-рядки EaW: %s %d %i %u %f %g (БЕЗ space-flag щоб не спрацьовував на "30% chance")
 ///     • КІЛЬКІСТЬ (не вміст!) груп у дужках [..] — вміст може бути перекладений
 ///
@@ -17,7 +19,9 @@ namespace EaWLocalizationTool.GUI.Services;
 /// EN: Checks if translation preserves all special sequences from original.
 ///
 ///     CHECKS:
-///     • Newline \n count
+///     • Newline \n count and carriage-return \r count
+///     • Whitespace and line breaks at the start and end of the string: must match the original
+///     • Curly modifiers {..}: presence, content and the count of { } braces
 ///     • EaW format specifiers: %s %d %i %u %f %g (NO space-flag to avoid "30% chance" false positives)
 ///     • COUNT (not content!) of bracket groups [..] — content may be translated
 ///
@@ -51,6 +55,14 @@ public static class ValidationService
         @"<[A-Za-z/][^>]*>",
         RegexOptions.Compiled);
 
+    // UA: Фігурні модифікатори {..} — вміст і кількість перевіряються повністю:
+    //     модифікатор не перекладається, тому його втрата чи зміна є помилкою.
+    // EN: Curly modifiers {..} — content and count are checked fully: a modifier
+    //     is not translated, so losing or altering it is an error.
+    private static readonly Regex RxBraceTag = new(
+        @"\{[^{}]*\}",
+        RegexOptions.Compiled);
+
     /// <summary>
     /// UA: Перевіряє переклад відносно оригіналу.
     ///     Повертає (true, "опис") при проблемі, (false, "") якщо все OK.
@@ -71,6 +83,25 @@ public static class ValidationService
         int transNl = translated.Count(c => c == '\n');
         if (origNl != transNl)
             issues.Add($"\\n: {origNl}→{transNl}");
+
+        // ── 1b. Повернення каретки / Carriage returns ─────────────────────────
+        int origCr  = original.Count(c => c == '\r');
+        int transCr = translated.Count(c => c == '\r');
+        if (origCr != transCr)
+            issues.Add($"\\r: {origCr}→{transCr}");
+
+        // ── 1c. Пробіли й переноси на краях / Edge whitespace ──────────────────
+        // UA: Порівнюється точна послідовність пробільних символів на початку та в
+        //     кінці: втрачений кінцевий пробіл чи перенос змінює відображення в грі.
+        // EN: The exact run of whitespace characters at the start and the end is
+        //     compared: a lost trailing space or line break changes in-game display.
+        string origLead = LeadingWhitespace(original), transLead = LeadingWhitespace(translated);
+        if (!string.Equals(origLead, transLead, StringComparison.Ordinal))
+            issues.Add($"початок / start: «{Show(origLead)}»→«{Show(transLead)}»");
+
+        string origTail = TrailingWhitespace(original), transTail = TrailingWhitespace(translated);
+        if (!string.Equals(origTail, transTail, StringComparison.Ordinal))
+            issues.Add($"кінець / end: «{Show(origTail)}»→«{Show(transTail)}»");
 
         // ── 2. Формат-рядки / Format specifiers ───────────────────────────────
         // UA: Витягуємо і сортуємо щоб порівняти незалежно від порядку
@@ -100,11 +131,92 @@ public static class ValidationService
         if (!origAngle.SequenceEqual(transAngle))
             issues.Add($"<теги/tags>: {origAngle.Count}→{transAngle.Count}");
 
+        // ── 5. Фігурні модифікатори / Curly modifiers ──────────────────────────
+        // UA: Спершу вміст пар {..}, потім окремо кількість дужок — це ловить і
+        //     непарні «{» чи «}».
+        // EN: First the content of {..} pairs, then the brace counts separately —
+        //     this also catches unpaired "{" or "}".
+        var origBrace  = ExtractSorted(RxBraceTag, original);
+        var transBrace = ExtractSorted(RxBraceTag, translated);
+        int origOpen  = original.Count(c => c == '{');
+        int transOpen = translated.Count(c => c == '{');
+        int origClose  = original.Count(c => c == '}');
+        int transClose = translated.Count(c => c == '}');
+        if (!origBrace.SequenceEqual(transBrace) ||
+            origOpen != transOpen || origClose != transClose)
+            issues.Add($"{{…}}: {origBrace.Count}→{transBrace.Count}" +
+                       (origOpen != transOpen || origClose != transClose
+                           ? $" ({{ {origOpen}→{transOpen}, }} {origClose}→{transClose})"
+                           : ""));
+
         bool hasIssue = issues.Count > 0;
         return (hasIssue, string.Join("  ·  ", issues));
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// UA: Повертає переклад, у якого пробіли й переноси на початку та в кінці взято з
+    ///     оригіналу. Сам текст (усе між краями) не змінюється ні на символ; якщо
+    ///     переклад складається лише з пробільних символів, він повертається без змін.
+    /// EN: Returns the translation with the whitespace and line breaks at its start and
+    ///     end taken from the original. The text itself (everything between the edges)
+    ///     is not changed by a single character; a translation made only of whitespace
+    ///     is returned unchanged.
+    /// </summary>
+    public static string AlignEdgeWhitespace(string original, string translated)
+    {
+        if (string.IsNullOrEmpty(translated)) return translated;
+
+        int start = 0;
+        while (start < translated.Length && char.IsWhiteSpace(translated[start])) start++;
+        if (start == translated.Length) return translated;
+
+        int end = translated.Length;
+        while (end > start && char.IsWhiteSpace(translated[end - 1])) end--;
+
+        string core = translated[start..end];
+        string aligned = LeadingWhitespace(original) + core + TrailingWhitespace(original);
+
+        // UA: Запобіжник: між краями має лишитися той самий текст.
+        // EN: Safety net: the text between the edges must stay identical.
+        return aligned.Trim() == core ? aligned : translated;
+    }
+
+    private static string LeadingWhitespace(string text)
+    {
+        int i = 0;
+        while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
+        return text[..i];
+    }
+
+    private static string TrailingWhitespace(string text)
+    {
+        int i = text.Length;
+        while (i > 0 && char.IsWhiteSpace(text[i - 1])) i--;
+        return text[i..];
+    }
+
+    // UA: Видимий запис пробільних символів для повідомлення: пробіл — ␠, перенос — \n тощо.
+    // EN: A visible rendering of whitespace for the message: space — ␠, line break — \n, etc.
+    private static string Show(string whitespace)
+    {
+        if (whitespace.Length == 0) return "∅";
+
+        var sb = new System.Text.StringBuilder();
+        foreach (char c in whitespace)
+        {
+            sb.Append(c switch
+            {
+                ' ' => "␠",
+                '\n' => "\\n",
+                '\r' => "\\r",
+                '\t' => "\\t",
+                _ => $"U+{(int)c:X4}"
+            });
+        }
+        return sb.ToString();
+    }
 
     private static List<string> ExtractSorted(Regex rx, string text) =>
         rx.Matches(text).Select(m => m.Value).OrderBy(s => s).ToList();

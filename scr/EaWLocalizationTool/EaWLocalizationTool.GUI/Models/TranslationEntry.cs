@@ -1,8 +1,17 @@
 using System.ComponentModel;
+using EaWLocalizationTool.Core;
 using EaWLocalizationTool.Core.Models;
 using EaWLocalizationTool.GUI.Services;
 
 namespace EaWLocalizationTool.GUI.Models;
+
+/// <summary>
+/// UA: Вид позначки вичитки: None — «-» або порожньо (не вичитано), Plus — «+»,
+///     Unsure — «+/-», Comment — будь-який інший текст.
+/// EN: Kind of review mark: None — "-" or empty (not reviewed), Plus — "+",
+///     Unsure — "+/-", Comment — any other text.
+/// </summary>
+public enum ReviewKind { None, Plus, Unsure, Comment }
 
 /// <summary>
 /// UA: ViewModel запису DAT для GUI.
@@ -18,6 +27,7 @@ public class TranslationEntry : INotifyPropertyChanged
     private bool _modified;
     private bool _hasValidationIssue;
     private string _validationWarning = "";
+    private string _reviewStatus = "";
 
     // ── Core data (не дублюється / not duplicated) ────────────────────────────
     public DatEntry Core { get; }
@@ -161,6 +171,12 @@ public class TranslationEntry : INotifyPropertyChanged
         set
         {
             if (_translated == value) return;
+            if (!TextGuard.IsClean(value))
+            {
+                RejectedCount++;
+                OnPropertyChanged(nameof(Translated));
+                return;
+            }
             _translated = value;
             _modified = true;
             OnPropertyChanged(nameof(Translated));
@@ -174,6 +190,12 @@ public class TranslationEntry : INotifyPropertyChanged
     public bool IsTranslated => !string.IsNullOrEmpty(_translated);
 
     /// <summary>
+    /// UA: Кількість текстів, відхилених перевіркою набору символів (з початку роботи програми).
+    /// EN: Number of texts rejected by the character set check (since the application started).
+    /// </summary>
+    public static int RejectedCount { get; private set; }
+
+    /// <summary>
     /// UA: Встановлює переклад без позначки Modified (для завантаження з файлу).
     ///     Також запускає валідацію.
     /// EN: Sets translation without Modified flag (for loading from file).
@@ -181,6 +203,11 @@ public class TranslationEntry : INotifyPropertyChanged
     /// </summary>
     public void SetTranslatedSilent(string value)
     {
+        if (!TextGuard.IsClean(value))
+        {
+            RejectedCount++;
+            return;
+        }
         _translated = value;
         _modified = false;
         OnPropertyChanged(nameof(Translated));
@@ -206,6 +233,178 @@ public class TranslationEntry : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsTranslated));
         OnPropertyChanged(nameof(HasValidationIssue));
         OnPropertyChanged(nameof(ValidationWarning));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ВИЧИТКА / REVIEW
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    /// UA: Позначка для рядків, які ще не вичитували.
+    /// EN: The mark for rows that have not been reviewed yet.
+    /// </summary>
+    public const string NotReviewedMark = "-";
+
+    /// <summary>
+    /// UA: Статус вичитки — вільний текст: «+» (вичитано), «+/-» (вичитано, є сумнів),
+    ///     «-» (не вичитано) або довільний коментар до рядка. Це метадані GUI: у DAT
+    ///     вони НЕ записуються, а зберігаються лише в робочому TSV (колонка ReviewStatus).
+    ///     Не впливає на IsModified: вичитка не змінює текст гри.
+    /// EN: Review status — free text: "+" (reviewed), "+/-" (reviewed, in doubt),
+    ///     "-" (not reviewed) or an arbitrary per-row comment. GUI metadata: it is NOT
+    ///     written to the DAT and is kept only in the working TSV (ReviewStatus column).
+    ///     Does not affect IsModified: a review mark does not change game text.
+    /// </summary>
+    public string ReviewStatus
+    {
+        get => _reviewStatus;
+        set
+        {
+            // UA: Значення не обрізається в сеттері: поле вводу пише сюди на кожне натискання
+            //     клавіші, і зміна тексту під курсором ламала б набір пробілів.
+            // EN: The value is not trimmed in the setter: the input field writes here on every
+            //     keystroke, and altering the text under the caret would swallow typed spaces.
+            value ??= "";
+            if (_reviewStatus == value) return;
+            _reviewStatus = value;
+            OnPropertyChanged(nameof(ReviewStatus));
+            OnPropertyChanged(nameof(ReviewMarkKind));
+            OnPropertyChanged(nameof(WasReviewed));
+            OnPropertyChanged(nameof(IsReviewCompleted));
+        }
+    }
+
+    /// <summary>
+    /// UA: Вид позначки вичитки (порожній текст і «-» — None).
+    /// EN: Kind of the review mark (empty text and "-" are None).
+    /// </summary>
+    public ReviewKind ReviewMarkKind => _reviewStatus.Trim() switch
+    {
+        "" or NotReviewedMark => ReviewKind.None,
+        "+" => ReviewKind.Plus,
+        "+/-" => ReviewKind.Unsure,
+        _ => ReviewKind.Comment
+    };
+
+    /// <summary>
+    /// UA: True, якщо вичитувач уже торкався рядка: позначка — будь-що, крім «-» та порожнього
+    ///     тексту. За цим критерієм рядок захищений від перезапису при перенесенні
+    ///     перекладу, а його статус вмикає автозбереження.
+    /// EN: True when a reviewer has touched the row: the mark is anything except "-" and
+    ///     empty text. This is the criterion that protects a row from being overwritten
+    ///     during a translation transfer, and its status triggers autosave.
+    /// </summary>
+    public bool WasReviewed => ReviewMarkKind != ReviewKind.None;
+
+    /// <summary>
+    /// UA: True, якщо рядок вичитано: позначка точно «+» або «+/-».
+    /// EN: True when the row is reviewed: the mark is exactly "+" or "+/-".
+    /// </summary>
+    public bool IsReviewCompleted => ReviewMarkKind is ReviewKind.Plus or ReviewKind.Unsure;
+
+    /// <summary>
+    /// UA: True, якщо поле вичитки заповнене (у т.ч. «-»); такі статуси потрапляють у робочий TSV.
+    /// EN: True when the review field is filled (including "-"); such statuses go to the working TSV.
+    /// </summary>
+    public bool HasReviewMark => !string.IsNullOrWhiteSpace(_reviewStatus);
+
+    /// <summary>
+    /// UA: Ставить «-» нетехнічному рядку з порожнім статусом вичитки.
+    ///     Технічні рядки вичитці не підлягають і лишаються без статусу.
+    /// EN: Sets "-" on a non-technical row whose review status is empty.
+    ///     Technical rows are not reviewed and stay without a status.
+    /// </summary>
+    public void EnsureReviewMark()
+    {
+        if (!HasReviewMark && !IsTechnical)
+            ReviewStatus = NotReviewedMark;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // ДУБЛІКАТИ / DUPLICATES
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private int _duplicateCount;
+    private bool _duplicateDiffer;
+    private int _similarCount;
+    private string _duplicateTip = "";
+
+    /// <summary>
+    /// UA: Кількість нетехнічних рядків із таким самим англійським текстом (разом із
+    ///     цим); 0 — дубліката немає. Заповнюється зовні після зміни набору рядків
+    ///     або перекладів.
+    /// EN: The number of non-technical rows with the same English text (including
+    ///     this one); 0 — no duplicates. Filled from outside after rows or
+    ///     translations change.
+    /// </summary>
+    public int DuplicateCount => _duplicateCount;
+
+    /// <summary>UA: Рядок має дублікати. / EN: The row has duplicates.</summary>
+    public bool IsDuplicate => _duplicateCount >= 2;
+
+    /// <summary>
+    /// UA: У групі (точні дублікати разом зі схожими рядками) переклади різняться за
+    ///     змістом: у точних дублікатів — будь-яка різниця, крім пробілів і переносів на
+    ///     краях; між схожими рядками (оригінали різняться регістром чи пробілами) —
+    ///     різниця, більша за регістр і пробіли. Порожній переклад теж вважається відмінним.
+    /// EN: Within the group (exact duplicates together with similar rows) the translations
+    ///     differ in meaning: any difference among exact duplicates except edge whitespace
+    ///     and line breaks; among similar rows (originals differing in case or whitespace)
+    ///     a difference beyond case and whitespace. An empty translation counts as different too.
+    /// </summary>
+    public bool DuplicateDiffer => _duplicateDiffer;
+
+    /// <summary>
+    /// UA: Кількість ІНШИХ рядків, англійський текст яких відрізняється лише регістром
+    ///     чи пробілами (на краях і всередині); це різні рядки гри, а не дублікати.
+    /// EN: The number of OTHER rows whose English text differs only in case or
+    ///     whitespace (at the ends and inside); these are different game strings,
+    ///     not duplicates.
+    /// </summary>
+    public int SimilarCount => _similarCount;
+
+    /// <summary>
+    /// UA: Підказка до колонки: кількість точних і схожих рядків, у чому саме вони
+    ///     відрізняються (регістр, пробіл чи перенос на початку / в кінці) і чи різні переклади.
+    /// EN: The column's tooltip: the number of exact and similar rows, exactly how they
+    ///     differ (case, a space or line break at the start / end) and whether the
+    ///     translations differ.
+    /// </summary>
+    public string DuplicateTip => _duplicateTip;
+
+    /// <summary>UA: Є схожі рядки (інший регістр чи пробіли). / EN: Has similar rows (different case or whitespace).</summary>
+    public bool HasSimilar => _similarCount > 0;
+
+    /// <summary>
+    /// UA: Підпис для колонки: «×3» — точні дублікати, «≈2» — схожі рядки (інший
+    ///     регістр чи пробіли); обидва можуть бути разом; порожньо — немає.
+    /// EN: Column label: "×3" — exact duplicates, "≈2" — similar rows (different case
+    ///     or whitespace); both can appear together; empty — none.
+    /// </summary>
+    public string DuplicateLabel =>
+        (IsDuplicate ? $"×{_duplicateCount}" : "") +
+        (IsDuplicate && HasSimilar ? " " : "") +
+        (HasSimilar ? $"≈{_similarCount}" : "");
+
+    /// <summary>
+    /// UA: Задає відомості про групи дублікатів і схожих рядків; сповіщає лише про зміну.
+    /// EN: Sets the details of the duplicate and similar groups; notifies only on change.
+    /// </summary>
+    public void SetDuplicateInfo(int count, bool differ, int similar, string tip)
+    {
+        if (_duplicateCount == count && _duplicateDiffer == differ &&
+            _similarCount == similar && _duplicateTip == tip) return;
+        _duplicateCount = count;
+        _duplicateDiffer = differ;
+        _similarCount = similar;
+        _duplicateTip = tip;
+        OnPropertyChanged(nameof(DuplicateTip));
+        OnPropertyChanged(nameof(DuplicateCount));
+        OnPropertyChanged(nameof(IsDuplicate));
+        OnPropertyChanged(nameof(DuplicateDiffer));
+        OnPropertyChanged(nameof(SimilarCount));
+        OnPropertyChanged(nameof(HasSimilar));
+        OnPropertyChanged(nameof(DuplicateLabel));
     }
 
     // ══════════════════════════════════════════════════════════════════════════
