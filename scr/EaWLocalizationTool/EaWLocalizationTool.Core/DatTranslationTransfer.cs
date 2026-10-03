@@ -280,10 +280,10 @@ public static class DatTranslationTransfer
     private static string WithoutHyphens(string text) =>
         WhitespaceRegex.Replace(text.Replace('-', ' '), " ").Trim();
 
-    /// <summary>UA: Найбільше символьних правок для «дрібної» відмінності. / EN: The most character edits for a "minor" difference.</summary>
-    public const int MinorMaxEdits = 3;
+    /// <summary>UA: Найбільша довжина зміненого фрагмента для «дрібної» відмінності. / EN: The largest length of the changed fragment for a "minor" difference.</summary>
+    public const int MinorMaxFragment = 3;
 
-    /// <summary>UA: Найбільша частка правок від довжини тексту. / EN: The largest share of edits relative to the text length.</summary>
+    /// <summary>UA: Найбільша частка зміненого фрагмента від довжини тексту. / EN: The largest share of the changed fragment relative to the text length.</summary>
     public const double MinorMaxRatio = 0.05;
 
     /// <summary>UA: Найкоротший текст, для якого відмінність може бути дрібною. / EN: The shortest text for which a difference can be minor.</summary>
@@ -292,18 +292,20 @@ public static class DatTranslationTransfer
     /// <summary>
     /// UA: Чи відрізняються два англійські тексти лише дрібницею, що не змінює змісту
     ///     (одрук, зайва або відсутня літера чи розділовий знак). Механічні умови, усі разом:
-    ///     довжина не менша за MinorMinLength; не більше MinorMaxEdits символьних правок
-    ///     (відстань Левенштейна за нормалізованими текстами) і не більше MinorMaxRatio
-    ///     довжини; набір цифр однаковий; різниця не зводиться до дефіса/пробіла (інше
-    ///     написання назви). Тексти, що відрізняються словами чи числами, під цю умову
-    ///     не підпадають і потребують рішення користувача.
+    ///     довжина не менша за MinorMinLength; після відкидання спільного початку й кінця
+    ///     нормалізованих текстів змінений фрагмент (в обох текстах) не довший за
+    ///     MinorMaxFragment символів і не більший за MinorMaxRatio довжини; набір цифр
+    ///     однаковий; різниця не зводиться до дефіса/пробіла (інше написання назви).
+    ///     Тексти, що відрізняються словами чи числами, під цю умову не підпадають
+    ///     і потребують рішення користувача.
     /// EN: Whether two English texts differ only by a trifle that does not change the
     ///     meaning (a typo, an extra or missing letter or punctuation mark). Mechanical
-    ///     conditions, all together: a length of at least MinorMinLength; at most
-    ///     MinorMaxEdits character edits (Levenshtein distance on the normalized texts) and
-    ///     at most MinorMaxRatio of the length; the same digits; the difference is not
-    ///     merely a hyphen/space (another spelling of a name). Texts that differ by words
-    ///     or numbers do not qualify and need a user decision.
+    ///     conditions, all together: a length of at least MinorMinLength; after the common
+    ///     beginning and ending of the normalized texts are discarded, the changed fragment
+    ///     (in both texts) is at most MinorMaxFragment characters long and at most
+    ///     MinorMaxRatio of the length; the same digits; the difference is not merely a
+    ///     hyphen/space (another spelling of a name). Texts that differ by words or numbers
+    ///     do not qualify and need a user decision.
     /// </summary>
     public static bool IsMinorDifference(string a, string b)
     {
@@ -312,7 +314,6 @@ public static class DatTranslationTransfer
 
         int longest = Math.Max(x.Length, y.Length);
         if (longest < MinorMinLength) return false;
-        if (Math.Abs(x.Length - y.Length) > MinorMaxEdits) return false;
         if (new string(x.Where(char.IsDigit).ToArray()) != new string(y.Where(char.IsDigit).ToArray()))
             return false;
 
@@ -322,30 +323,23 @@ public static class DatTranslationTransfer
         //     spelling of a name, not a typo: the user decides.
         if (WithoutHyphens(x) == WithoutHyphens(y)) return false;
 
-        int limit = Math.Min(MinorMaxEdits, (int)Math.Floor(longest * MinorMaxRatio));
+        int limit = Math.Min(MinorMaxFragment, (int)Math.Floor(longest * MinorMaxRatio));
         if (limit < 1) return false;
 
-        // UA: Відстань Левенштейна з відсіканням: рядок матриці, що перевищив limit, зупиняє обчислення.
-        // EN: Levenshtein distance with a cut-off: a matrix row exceeding limit stops the computation.
-        var previous = new int[y.Length + 1];
-        var current = new int[y.Length + 1];
-        for (int j = 0; j <= y.Length; j++) previous[j] = j;
+        // UA: Спільний початок і спільний кінець відкидаються; те, що лишилося посередині в
+        //     обох текстах, — змінений фрагмент. Він має вкластися в limit символів.
+        // EN: The common beginning and the common ending are discarded; what remains in the
+        //     middle of both texts is the changed fragment. It must fit within limit characters.
+        int shortest = Math.Min(x.Length, y.Length);
+        int head = 0;
+        while (head < shortest && x[head] == y[head]) head++;
 
-        for (int i = 1; i <= x.Length; i++)
-        {
-            current[0] = i;
-            int rowMin = current[0];
-            for (int j = 1; j <= y.Length; j++)
-            {
-                int cost = x[i - 1] == y[j - 1] ? 0 : 1;
-                current[j] = Math.Min(Math.Min(previous[j] + 1, current[j - 1] + 1), previous[j - 1] + cost);
-                if (current[j] < rowMin) rowMin = current[j];
-            }
-            if (rowMin > limit) return false;
-            (previous, current) = (current, previous);
-        }
+        int tail = 0;
+        while (tail < shortest - head && x[x.Length - 1 - tail] == y[y.Length - 1 - tail]) tail++;
 
-        return previous[y.Length] <= limit;
+        int changedInX = x.Length - head - tail;
+        int changedInY = y.Length - head - tail;
+        return Math.Max(changedInX, changedInY) <= limit;
     }
 
     /// <summary>

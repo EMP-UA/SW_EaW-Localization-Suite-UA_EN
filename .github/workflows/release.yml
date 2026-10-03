@@ -75,7 +75,7 @@ jobs:
   # ---------------------------------------------------------------------------
   prepare:
     name: Prepare
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.resolve.outputs.tag }}
       version: ${{ steps.resolve.outputs.version }}
@@ -96,7 +96,7 @@ jobs:
           echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
 
       - name: Checkout tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ steps.resolve.outputs.tag }}
 
@@ -122,7 +122,7 @@ jobs:
           fi
 
       - name: Upload release notes
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: release-notes
           path: release-notes.md
@@ -147,12 +147,12 @@ jobs:
         variant: [generic, win-x64, win-x86]
     steps:
       - name: Checkout tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ needs.prepare.outputs.tag }}
 
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
 
@@ -194,7 +194,7 @@ jobs:
           Get-Item $zip | Format-List Name, Length
 
       - name: Upload archive
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: zip-${{ matrix.app.name }}-${{ matrix.variant }}
           path: '*.zip'
@@ -208,21 +208,21 @@ jobs:
   publish:
     name: Publish release
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       id-token: write
       attestations: write
     steps:
       - name: Download archives
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: zip-*
           path: dist
           merge-multiple: true
 
       - name: Download release notes
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: release-notes
 
@@ -235,7 +235,7 @@ jobs:
       # UA: Підтвердження, що архіви зібрано цим workflow з коду репозиторію.
       # EN: Proof that the archives were built by this workflow from the repository code.
       - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v3
         with:
           subject-path: 'dist/*.zip'
 
@@ -278,12 +278,12 @@ jobs:
     name: Upload to Nexus Mods
     needs: [prepare, publish]
     if: ${{ vars.NEXUS_GUI_FILE_ID != '' || vars.NEXUS_TEXTURE_FILE_ID != '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
       - name: Download generic archives
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           pattern: zip-*-generic
           merge-multiple: true

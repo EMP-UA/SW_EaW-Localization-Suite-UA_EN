@@ -53,9 +53,9 @@ Base game (Empire at War) → expansion (Forces of Corruption).
 3. **Дрібна відмінність.** Якщо ключ є в основній грі, а англійські тексти відрізняються лише
    дрібницею, що не змінює змісту (одрук, зайва чи відсутня літера або розділовий знак),
    переклад переноситься за ключем без підтвердження. Умови (усі разом): текст від 20 символів,
-   не більше 3 символьних правок і не більше 5% довжини (відстань Левенштейна за нормалізованими
-   текстами), цифри однакові, різниця не лише в дефісі чи пробілі (інше написання назви, напр.
-   «Abregado-rae» / «Abregado Rae»). Відмінності у словах і числах під це не підпадають.
+   змінений фрагмент не довший за 3 символи і не більший за 5% довжини (після відкидання
+   спільного початку й кінця нормалізованих текстів), цифри однакові, різниця не лише в дефісі
+   чи пробілі (інше написання назви, напр. «Abregado-rae» / «Abregado Rae»). Відмінності у словах і числах під це не підпадають.
 4. Інакше рядки, у яких ключ збігається, а англійський текст у доповненні змінено, не
    переносяться автоматично й рахуються окремо.
 
@@ -133,10 +133,10 @@ Row matching:
 3. **Minor difference.** When the key exists in the base game and the English texts differ only
    by a trifle that does not change the meaning (a typo, an extra or missing letter or a
    punctuation mark), the translation is taken by key without a confirmation. Conditions (all
-   together): a text of at least 20 characters, at most 3 character edits and at most 5% of the
-   length (Levenshtein distance on the normalized texts), the same digits, and the difference is
-   not merely a hyphen or a space (another spelling of a name, e.g. "Abregado-rae" /
-   "Abregado Rae"). Differences in words and numbers do not qualify.
+   together): a text of at least 20 characters, a changed fragment of at most 3 characters and
+   at most 5% of the length (after the common beginning and ending of the normalized texts are
+   discarded), the same digits, and the difference is not merely a hyphen or a space (another
+   spelling of a name, e.g. "Abregado-rae" / "Abregado Rae"). Differences in words and numbers do not qualify.
 4. Otherwise rows whose key matches but whose English text differs in the expansion are not
    transferred automatically and are counted separately.
 

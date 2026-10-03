@@ -79,10 +79,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   згодою змінюються, і їхні «+» та «+/-» скидаються на «-»
 - Збіг за ключем із дрібною відмінністю тексту: якщо ключ є в основній грі, а англійські тексти
   відрізняються лише одруком, зайвою чи відсутньою літерою або розділовим знаком, переклад
-  переноситься за ключем без підтвердження. Умови (усі разом): текст від 20 символів, не більше
-  3 символьних правок і не більше 5% довжини (відстань Левенштейна за нормалізованими текстами),
-  цифри однакові, різниця не лише в дефісі чи пробілі (інше написання назви, наприклад
-  «Abregado-rae» / «Abregado Rae»). Відмінності у словах і числах під це не підпадають і йдуть
+  переноситься за ключем без підтвердження. Умови (усі разом): текст від 20 символів, змінений
+  фрагмент не довший за 3 символи і не більший за 5% довжини (після відкидання спільного
+  початку й кінця нормалізованих текстів), цифри однакові, різниця не лише в дефісі чи пробілі
+  (інше написання назви, наприклад «Abregado-rae» / «Abregado Rae»). Відмінності у словах і числах під це не підпадають і йдуть
   на підтвердження
 - Вікно підтвердження перенесення: рядки, у яких ключ є в основній грі, але англійський текст за
   ним інший, показуються перед записом: англійський текст основної гри й доповнення, поточний
@@ -219,9 +219,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Key match with a minor text difference: when the key exists in the base game and the English
   texts differ only by a typo, an extra or missing letter or a punctuation mark, the translation
   is taken by key without a confirmation. Conditions (all together): a text of at least 20
-  characters, at most 3 character edits and at most 5% of the length (Levenshtein distance on
-  the normalized texts), the same digits, and the difference is not merely a hyphen or a space
-  (another spelling of a name, e.g. "Abregado-rae" / "Abregado Rae"). Differences in words and
+  characters, a changed fragment of at most 3 characters and at most 5% of the length (after the
+  common beginning and ending of the normalized texts are discarded), the same digits, and the
+  difference is not merely a hyphen or a space (another spelling of a name, e.g. "Abregado-rae" / "Abregado Rae"). Differences in words and
   numbers do not qualify and go to the confirmation
 - Transfer review window: rows whose key exists in the base game but whose English text under
   that key differs are shown before writing: the base game's and the expansion's English text,
